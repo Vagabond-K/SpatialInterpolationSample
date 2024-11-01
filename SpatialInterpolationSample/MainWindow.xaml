@@ -7,7 +7,7 @@
     xmlns:vk="http://schemas.vagabond-k.com/winfx/2016/xaml"
     xmlns:local="clr-namespace:SpatialInterpolation"
     mc:Ignorable="d"
-    Title="Spatial Interpolation Sample" Height="720" Width="1280"
+    Title="Spatial Interpolation Sample" Height="720" Width="1100"
     Background="Black"
     d:DataContext="{d:DesignInstance Type=local:MainViewModel, IsDesignTimeCreatable=False}">
 
