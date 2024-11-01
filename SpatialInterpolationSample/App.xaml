@@ -1,8 +1,8 @@
-﻿<Application x:Class="SpatialInterpolationSample.App"
+﻿<Application x:Class="SpatialInterpolation.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vk="http://schemas.vagabond-k.com/winfx/2016/xaml"
-             xmlns:local="clr-namespace:SpatialInterpolationSample"
+             xmlns:local="clr-namespace:SpatialInterpolation"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>

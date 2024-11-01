@@ -1,4 +1,4 @@
-﻿namespace SpatialInterpolationSample.SpatialInterpolation
+﻿namespace SpatialInterpolation
 {
     public readonly struct SpatialSample
     {

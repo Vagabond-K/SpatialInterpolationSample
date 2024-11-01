@@ -1,7 +1,6 @@
-﻿using SpatialInterpolationSample.SpatialInterpolation;
-using System;
+﻿using System;
 
-namespace SpatialInterpolationSample
+namespace SpatialInterpolation
 {
     class Sample : NotifyPropertyChangeObject
     {

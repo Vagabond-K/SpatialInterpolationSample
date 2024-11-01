@@ -1,15 +1,16 @@
-﻿using System.Linq;
+﻿using SpatialInterpolation.Interpolations;
+using System.Linq;
 using System.Windows;
 using VagabondK.Windows;
 
-namespace SpatialInterpolationSample
+namespace SpatialInterpolation
 {
     public partial class MainWindow : ThemeWindow
     {
         public MainWindow()
         {
             InitializeComponent();
-
+            new GpuIdwInterpolation();
             colorMap.MouseLeftButtonDown += (sender, e) =>
             {
                 if (!colorMap.IsMouseCaptured)
