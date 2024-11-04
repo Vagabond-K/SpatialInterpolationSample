@@ -10,26 +10,26 @@ namespace SpatialInterpolation
         public MainWindow()
         {
             InitializeComponent();
-            new GpuIdwInterpolation();
-            colorMap.MouseLeftButtonDown += (sender, e) =>
+
+            heatMap.MouseLeftButtonDown += (sender, e) =>
             {
-                if (!colorMap.IsMouseCaptured)
+                if (!heatMap.IsMouseCaptured)
                 {
-                    colorMap.CaptureMouse();
-                    UpdatePoint(e.GetPosition(colorMap));
+                    heatMap.CaptureMouse();
+                    UpdatePoint(e.GetPosition(heatMap));
                 }
             };
-            colorMap.MouseMove += (sender, e) =>
+            heatMap.MouseMove += (sender, e) =>
             {
-                if (colorMap.IsMouseCaptured)
-                    UpdatePoint(e.GetPosition(colorMap));
+                if (heatMap.IsMouseCaptured)
+                    UpdatePoint(e.GetPosition(heatMap));
             };
-            colorMap.MouseLeftButtonUp += (sender, e) =>
+            heatMap.MouseLeftButtonUp += (sender, e) =>
             {
-                if (colorMap.IsMouseCaptured)
+                if (heatMap.IsMouseCaptured)
                 {
-                    colorMap.ReleaseMouseCapture();
-                    UpdatePoint(e.GetPosition(colorMap));
+                    heatMap.ReleaseMouseCapture();
+                    UpdatePoint(e.GetPosition(heatMap));
                 }
             };
 

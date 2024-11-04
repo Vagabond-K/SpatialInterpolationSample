@@ -117,7 +117,7 @@
                         <Slider x:Name="sliderMinimum" Value="0" Interval="1" Minimum="0" Maximum="100" IsSnapToTickEnabled="True"/>
                     </HeaderedContentControl>
                     <HeaderedContentControl Tag="Contour Levels: " Header="{Binding ElementName=sliderContourLevels, Path=Value}">
-                        <Slider x:Name="sliderContourLevels" Value="{Binding ElementName=colorMap, Path=ContourLevels}" Interval="1" Minimum="0" Maximum="40" IsSnapToTickEnabled="True"/>
+                        <Slider x:Name="sliderContourLevels" Value="{Binding ElementName=heatMap, Path=ContourLevels}" Interval="1" Minimum="0" Maximum="40" IsSnapToTickEnabled="True"/>
                     </HeaderedContentControl>
                     <CheckBox Content="Use GPU" IsChecked="{Binding UseGPU}" Margin="3,6"/>
                 </StackPanel>
@@ -221,8 +221,8 @@
                             <Color>Red</Color>
                         </x:Array>
                     </Grid.Resources>
-                    <local:ColorMap
-                        x:Name="colorMap"
+                    <local:SpatialHeatMap
+                        x:Name="heatMap"
                         Width="{Binding Width}"
                         Height="{Binding Height}"
                         Minimum="{Binding ElementName=sliderMinimum, Path=Value}"
@@ -245,7 +245,7 @@
                 <Grid Width="20" Height="20" SnapsToDevicePixels="True">
                     <Canvas.Left>
                         <MultiBinding Converter="{StaticResource xConverter}">
-                            <Binding ElementName="colorMap"/>
+                            <Binding ElementName="heatMap"/>
                             <Binding ElementName="canvas"/>
                             <Binding ElementName="listBoxSamples" Path="SelectedItem.X"/>
                             <Binding Path="Width"/>
@@ -256,7 +256,7 @@
                     </Canvas.Left>
                     <Canvas.Top>
                         <MultiBinding Converter="{StaticResource yConverter}">
-                            <Binding ElementName="colorMap"/>
+                            <Binding ElementName="heatMap"/>
                             <Binding ElementName="canvas"/>
                             <Binding ElementName="listBoxSamples" Path="SelectedItem.Y"/>
                             <Binding Path="Width"/>
@@ -296,7 +296,7 @@
                 <Grid Grid.Column="1" Grid.RowSpan="3" Width="14" Margin="3,0,0,0" Height="{Binding ElementName=legendHeight, Path=ActualHeight}">
                     <Rectangle Width="10" HorizontalAlignment="Right">
                         <Rectangle.Fill>
-                            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0" GradientStops="{Binding ElementName=colorMap, Path=LegendGradientStops}" ColorInterpolationMode="ScRgbLinearInterpolation"/>
+                            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0" GradientStops="{Binding ElementName=heatMap, Path=LegendGradientStops}" ColorInterpolationMode="ScRgbLinearInterpolation"/>
                         </Rectangle.Fill>
                     </Rectangle>
                     <Rectangle Height="1" Fill="White" VerticalAlignment="Top"/>

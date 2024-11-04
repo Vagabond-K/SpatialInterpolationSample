@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>SpatialInterpolation</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ComputeSharp" Version="3.0.1" />
+    <PackageReference Include="VagabondK.Windows" Version="1.0.8" />
+  </ItemGroup>
+
+  <Import Project="..\SpatialInterpolation\SpatialInterpolation.projitems" Label="Shared" />
+
+</Project>

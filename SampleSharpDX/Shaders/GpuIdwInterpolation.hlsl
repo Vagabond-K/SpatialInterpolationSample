@@ -1,10 +1,10 @@
+RWTexture2D<float> results : register(u0);
+StructuredBuffer<float3> samples : register(t0);
 cbuffer params : register(b0)
 {
     float searchRadius;
     float weightPower;
 }
-StructuredBuffer<float3> samples : register(t0);
-RWTexture2D<float> results : register(u0);
 
 [numthreads(32, 32, 1)]
 void CS(uint3 id : SV_DispatchThreadID)
