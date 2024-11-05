@@ -16,7 +16,7 @@ float toSRgb(float value)
     else if (value <= 0.0031308)
         return (value * 12.92);
     else if (value < 1.0)
-        return ((1.055f * pow(value, (1.0 / 2.4))) - 0.055f);
+        return 1.055f * pow(value, (1.0 / 2.4)) - 0.055f;
     else
         return 1.0;
 }
@@ -72,7 +72,7 @@ void CS(uint3 id : SV_DispatchThreadID)
         float levelUnit = 1.0 / colorsCount;
         int index = (int) floor(ratio * colorsCount);
         float lerpSegment = (ratio - levelUnit * index) / levelUnit;
-        result = toSRgba(lerp(toScRgba(colorLevels[index]), toScRgba(colorLevels[index + 1]), lerpSegment));
+        result = lerp(toScRgba(colorLevels[index]), toScRgba(colorLevels[index + 1]), lerpSegment);
     }
         
     if (contourLevels > 0)
@@ -97,8 +97,8 @@ void CS(uint3 id : SV_DispatchThreadID)
 
         float edgeRatio = sqrt(h * h + v * v) * contourColor.a;
         if (edgeRatio > 0)
-            result = toSRgba(lerp(toScRgba(result), toScRgba(float4(contourColor.rgb, 1)), edgeRatio));
+            result = lerp(toScRgba(result), toScRgba(float4(contourColor.rgb, 1)), edgeRatio);
     }
-    
-    results[id.xy] = result;
+
+    results[id.xy] = toSRgba(result);
 }

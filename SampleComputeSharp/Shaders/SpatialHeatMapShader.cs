@@ -20,7 +20,7 @@ namespace SpatialInterpolation.Shaders
             else if (value <= 0.0031308f)
                 return (value * 12.92f);
             else if (value < 1.0)
-                return ((1.055f * Hlsl.Pow(value, 1.0f / 2.4f)) - 0.055f);
+                return 1.055f * Hlsl.Pow(value, 1.0f / 2.4f) - 0.055f;
             else
                 return 1.0f;
         }
@@ -69,14 +69,14 @@ namespace SpatialInterpolation.Shaders
                 float levelUnit = 1.0f / colorsCount;
                 int index = (int)Hlsl.Floor(ratio * colorsCount);
                 float lerpSegment = (ratio - levelUnit * index) / levelUnit;
-                result = ToSRgba(Hlsl.Lerp(ToScRgba(colorLevels[index]), ToScRgba(colorLevels[index + 1]), lerpSegment));
+                result = Hlsl.Lerp(ToScRgba(colorLevels[index]), ToScRgba(colorLevels[index + 1]), lerpSegment);
             }
 
             if (contourLevels > 0)
             {
 
                 int width = values.Width;
-                int height = values.Width;
+                int height = values.Height;
 
                 int xPrev = ThreadIds.X + (ThreadIds.X <= 0 ? 0 : -1);
                 int xNext = ThreadIds.X + (ThreadIds.X >= width - 1 ? 0 : 1);
@@ -94,10 +94,10 @@ namespace SpatialInterpolation.Shaders
 
                 float edgeRatio = Hlsl.Sqrt(h * h + v * v) * contourColor.A;
                 if (edgeRatio > 0)
-                    result = ToSRgba(Hlsl.Lerp(ToScRgba(result), ToScRgba(new float4(contourColor.RGB, 1)), edgeRatio));
+                    result = Hlsl.Lerp(ToScRgba(result), ToScRgba(new float4(contourColor.RGB, 1)), edgeRatio);
             }
 
-            results[ThreadIds.XY] = result;
+            results[ThreadIds.XY] = ToSRgba(result);
         }
     }
 }

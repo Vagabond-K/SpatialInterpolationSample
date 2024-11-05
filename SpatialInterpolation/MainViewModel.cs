@@ -81,40 +81,43 @@ namespace SpatialInterpolation
             bool isRunnung = false;
             if (samples.Length == 0)
             {
-                cancellation?.Cancel();
+                this.cancellation?.Cancel();
                 DataSource = dataSource;
                 IsBusy = false;
                 return;
             }
 
-            try
+            var cancellation = new CancellationTokenSource();
+            this.cancellation?.Cancel();
+            this.cancellation = cancellation;
+            _ = Task.Delay(50).ContinueWith(task =>
             {
-                var cancellation = new CancellationTokenSource();
-                this.cancellation?.Cancel();
-                this.cancellation = cancellation;
-                _ = Task.Delay(10).ContinueWith(task =>
-                {
-                    lock (this)
-                    {
-                        if (isRunnung)
-                            IsBusy = true;
-                    }
-                });
-                isRunnung = true;
-                var stopwatch = Stopwatch.StartNew();
-                await (UseGPU ? gpuInterpolation : cpuInterpolation).Interpolate(samples, dataSource, cancellation.Token);
                 lock (this)
                 {
-                    isRunnung = false;
-                    if (!cancellation.IsCancellationRequested)
-                    {
-                        DataSource = dataSource;
-                        Duration = stopwatch.ElapsedMilliseconds;
-                        IsBusy = false;
-                    }
+                    if (isRunnung)
+                        IsBusy = true;
+                }
+            }, cancellation.Token);
+            isRunnung = true;
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                await (UseGPU ? gpuInterpolation : cpuInterpolation).Interpolate(samples, dataSource, cancellation.Token);
+            }
+            catch
+            {
+                return;
+            }
+            lock (this)
+            {
+                isRunnung = false;
+                if (!cancellation.IsCancellationRequested)
+                {
+                    DataSource = dataSource;
+                    Duration = stopwatch.ElapsedMilliseconds;
+                    IsBusy = false;
                 }
             }
-            catch { }
         }
     }
 }

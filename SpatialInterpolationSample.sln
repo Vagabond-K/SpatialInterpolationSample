@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleSharpDX", "SampleShar
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleComputeSharp", "SampleComputeSharp\SampleComputeSharp.csproj", "{C1205EC5-EC5F-4272-B095-8DDF31EC370A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleILGPU", "SampleILGPU\SampleILGPU.csproj", "{2CED9119-D0DC-46CE-ADB2-657BC917736F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +25,10 @@ Global
 		{C1205EC5-EC5F-4272-B095-8DDF31EC370A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1205EC5-EC5F-4272-B095-8DDF31EC370A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C1205EC5-EC5F-4272-B095-8DDF31EC370A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CED9119-D0DC-46CE-ADB2-657BC917736F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CED9119-D0DC-46CE-ADB2-657BC917736F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CED9119-D0DC-46CE-ADB2-657BC917736F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CED9119-D0DC-46CE-ADB2-657BC917736F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -31,6 +37,7 @@ Global
 		SolutionGuid = {7DA0EAAA-75C4-4CCC-B0D3-87B7691577A1}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		SpatialInterpolation\SpatialInterpolation.projitems*{2ced9119-d0dc-46ce-adb2-657bc917736f}*SharedItemsImports = 5
 		SpatialInterpolation\SpatialInterpolation.projitems*{813f24ee-e6a3-4e6a-a82c-39348fcfd0f4}*SharedItemsImports = 4
 		SpatialInterpolation\SpatialInterpolation.projitems*{c1205ec5-ec5f-4272-b095-8ddf31ec370a}*SharedItemsImports = 5
 		SpatialInterpolation\SpatialInterpolation.projitems*{f8c2117c-f4b8-4aea-ac13-162eaf593932}*SharedItemsImports = 13
