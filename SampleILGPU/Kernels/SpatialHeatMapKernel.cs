@@ -87,9 +87,9 @@ namespace SpatialInterpolation.Kernels
             result = ToSRgba(result);
 
             results[id] = ((int)(result.W * 255f) << 24)
-                | ((int)(result.Z * 255f) << 16)
+                | ((int)(result.X * 255f) << 16)
                 | ((int)(result.Y * 255f) << 8)
-                | ((int)(result.X * 255f));
+                | ((int)(result.Z * 255f));
         }
 
         public static void Execute(Index2D id, SpatialHeatMapKernel data) => data.ExecuteKernel(id);
