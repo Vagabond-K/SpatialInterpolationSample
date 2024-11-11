@@ -1,4 +1,5 @@
 ﻿using SpatialInterpolation.Interpolations;
+using System;
 using System.Linq;
 using System.Windows;
 using VagabondK.Windows;
@@ -34,10 +35,15 @@ namespace SpatialInterpolation
             };
 
             var mainViewModel = new MainViewModel();
-            mainViewModel.Samples.Add(new Sample(mainViewModel.Width / 3, mainViewModel.Height / 3, 0));
-            mainViewModel.Samples.Add(new Sample(mainViewModel.Width * 2 / 3, mainViewModel.Height / 3, 25));
-            mainViewModel.Samples.Add(new Sample(mainViewModel.Width / 3, mainViewModel.Height * 2 / 3, 75));
-            mainViewModel.Samples.Add(new Sample(mainViewModel.Width * 2 / 3, mainViewModel.Height * 2 / 3, 100));
+            //mainViewModel.Samples.Add(new Sample(mainViewModel.Width / 3, mainViewModel.Height / 3, 0));
+            //mainViewModel.Samples.Add(new Sample(mainViewModel.Width * 2 / 3, mainViewModel.Height / 3, 25));
+            //mainViewModel.Samples.Add(new Sample(mainViewModel.Width / 3, mainViewModel.Height * 2 / 3, 75));
+            //mainViewModel.Samples.Add(new Sample(mainViewModel.Width * 2 / 3, mainViewModel.Height * 2 / 3, 100));
+            var random = new Random();
+            for (int i = 0; i < 50; i++)
+            {
+                mainViewModel.Samples.Add(new Sample((float)random.NextDouble() * mainViewModel.Width, (float)random.NextDouble() * mainViewModel.Height, (float)random.NextDouble() * 100));
+            }
             mainViewModel.SelectedSample = mainViewModel.Samples.FirstOrDefault();
 
             DataContext = mainViewModel;
