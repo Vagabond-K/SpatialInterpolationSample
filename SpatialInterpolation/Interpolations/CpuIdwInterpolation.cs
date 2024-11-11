@@ -29,15 +29,15 @@ namespace SpatialInterpolation.Interpolations
                 {
                     for (int x = 0; x < width; x++)
                     {
-                        var sum = 0d;
-                        var weights = 0d;
+                        var sum = 0f;
+                        var weights = 0f;
                         foreach (var sample in sampleArray)
                         {
                             if (cancellationToken.IsCancellationRequested) return;
-                            var distance = Math.Sqrt(Math.Pow(x - sample.X, 2) + Math.Pow(y - sample.Y, 2));
+                            var distance = MathF.Sqrt(MathF.Pow(x - sample.X, 2) + MathF.Pow(y - sample.Y, 2));
                             if (distance <= searchRadius)
                             {
-                                var weight = distance == 0 ? 1 : (1 / Math.Pow(distance, weightPower));
+                                var weight = distance == 0 ? 1 : (1 / MathF.Pow(distance, weightPower));
                                 sum += sample.Value * weight;
                                 weights += weight;
                             }
@@ -48,4 +48,11 @@ namespace SpatialInterpolation.Interpolations
             }, cancellationToken);
         }
     }
+#if !NET8_0
+    static class MathF
+    {
+        public static float Sqrt(in float f) => (float)Math.Sqrt(f);
+        public static float Pow(in float x, in float y) => (float)Math.Pow(x, y);
+    }
+#endif
 }
