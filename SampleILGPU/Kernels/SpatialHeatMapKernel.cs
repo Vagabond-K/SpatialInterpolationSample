@@ -4,7 +4,7 @@ using System.Numerics;
 
 namespace SpatialInterpolation.Kernels
 {
-    struct SpatialHeatMapKernel(ArrayView2D<int, Stride2D.DenseX> results, ArrayView1D<Vector4, Stride1D.Dense> colorLevels, ArrayView2D<float, Stride2D.DenseX> values, Vector4 contourColor, uint contourLevels, float maximum, float minimum)
+    struct SpatialHeatMapKernel(ArrayView2D<int, Stride2D.DenseX> results, ArrayView1D<Vector4, Stride1D.Dense> colors, ArrayView1D<float, Stride1D.Dense> colorStops, ArrayView2D<float, Stride2D.DenseX> values, Vector4 contourColor, uint contourLevels, float maximum, float minimum)
     {
         private readonly float ToRatio(Index2D id)
             => float.IsNaN(values[id]) ? 0.0f : float.Max(0f, float.Min(1f, (values[id] - minimum) / (maximum - minimum)));
@@ -31,22 +31,33 @@ namespace SpatialInterpolation.Kernels
 
         private void ExecuteKernel(Index2D id)
         {
-            int colorsCount = (int)colorLevels.Length;
+            int colorsCount = (int)colors.Length;
             Vector4 result = new(0, 0, 0, 0);
 
             float ratio = ToRatio(id);
 
             if (colorsCount == 1)
             {
-                result = colorLevels[0];
+                result = colors[0];
             }
             else if (colorsCount > 1)
             {
-                colorsCount -= 1;
-                float levelUnit = 1.0f / colorsCount;
-                int index = (int)float.Floor(ratio * colorsCount);
-                float lerpSegment = (ratio - levelUnit * index) / levelUnit;
-                result = Vector4.Lerp(colorLevels[index], colorLevels[index + 1], lerpSegment);
+                colorsCount--;
+
+                int index;
+                for (index = 0; index < colorsCount; index++)
+                {
+                    if (ratio < colorStops[index])
+                        break;
+                }
+                if (index == 0)
+                    result = colors[0];
+                else
+                {
+                    float levelUnit = colorStops[index] - colorStops[index - 1];
+                    float lerpSegment = (ratio - colorStops[index - 1]) / levelUnit;
+                    result = Vector4.Lerp(colors[index - 1], colors[index], lerpSegment);
+                }
             }
 
             if (contourLevels > 0)

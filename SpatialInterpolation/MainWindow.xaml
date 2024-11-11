@@ -212,24 +212,16 @@
 
             <Viewbox x:Name="viewbox" Grid.Column="1" Grid.RowSpan="2" Margin="3" StretchDirection="DownOnly">
                 <Grid>
-                    <Grid.Resources>
-                        <x:Array x:Key="Colors" Type="Color">
-                            <Color>Blue</Color>
-                            <Color>Cyan</Color>
-                            <Color>Lime</Color>
-                            <Color>Yellow</Color>
-                            <Color>Red</Color>
-                        </x:Array>
-                    </Grid.Resources>
                     <local:SpatialHeatMap
                         x:Name="heatMap"
                         Width="{Binding Width}"
                         Height="{Binding Height}"
                         Minimum="{Binding ElementName=sliderMinimum, Path=Value}"
                         Maximum="{Binding ElementName=sliderMaximum, Path=Value}"
-                        Colors="{StaticResource Colors}"
                         DataSource="{Binding DataSource}"
-                        Cursor="Hand"/>
+                        GradientStops="{Binding ElementName=legend, Path=GradientStops}"
+                        Cursor="Hand">
+                    </local:SpatialHeatMap>
                     <Rectangle Fill="#80000000" IsHitTestVisible="False" Visibility="{Binding IsBusy, Converter={vk:BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
                 </Grid>
             </Viewbox>
@@ -296,7 +288,13 @@
                 <Grid Grid.Column="1" Grid.RowSpan="3" Width="14" Margin="3,0,0,0" Height="{Binding ElementName=legendHeight, Path=ActualHeight}">
                     <Rectangle Width="10" HorizontalAlignment="Right">
                         <Rectangle.Fill>
-                            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0" GradientStops="{Binding ElementName=heatMap, Path=LegendGradientStops}" ColorInterpolationMode="ScRgbLinearInterpolation"/>
+                            <LinearGradientBrush x:Name="legend" EndPoint="0.5,0" StartPoint="0.5,1" ColorInterpolationMode="ScRgbLinearInterpolation">
+                                <GradientStop Color="Red" Offset="1"/>
+                                <GradientStop Color="Yellow" Offset="0.75"/>
+                                <GradientStop Color="Lime" Offset="0.5"/>
+                                <GradientStop Color="Cyan" Offset="0.25"/>
+                                <GradientStop Color="Blue" Offset="0"/>
+                            </LinearGradientBrush>
                         </Rectangle.Fill>
                     </Rectangle>
                     <Rectangle Height="1" Fill="White" VerticalAlignment="Top"/>

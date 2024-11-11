@@ -6,7 +6,8 @@ namespace SpatialInterpolation.Shaders
     [GeneratedComputeShaderDescriptor]
     public readonly partial struct SpatialHeatMapShader(
         ReadWriteTexture2D<Bgra32, float4> results,
-        ReadOnlyTexture1D<Bgra32, float4> colorLevels,
+        ReadOnlyTexture1D<Bgra32, float4> colors,
+        ReadOnlyTexture1D<float> colorStops,
         ReadOnlyTexture2D<float> values,
         float4 contourColor,
         uint contourLevels,
@@ -54,22 +55,33 @@ namespace SpatialInterpolation.Shaders
 
         public void Execute()
         {
-            int colorsCount = colorLevels.Width;
+            int colorsCount = colors.Width;
             float4 result = new(0, 0, 0, 0);
 
             float ratio = ToRatio(ThreadIds.XY);
 
             if (colorsCount == 1)
             {
-                result = colorLevels[0];
+                result = colors[0];
             }
             else if (colorsCount > 1)
             {
-                colorsCount -= 1;
-                float levelUnit = 1.0f / colorsCount;
-                int index = (int)Hlsl.Floor(ratio * colorsCount);
-                float lerpSegment = (ratio - levelUnit * index) / levelUnit;
-                result = Hlsl.Lerp(ToScRgba(colorLevels[index]), ToScRgba(colorLevels[index + 1]), lerpSegment);
+                colorsCount--;
+
+                int index;
+                for (index = 0; index < colorsCount; index++)
+                {
+                    if (ratio < colorStops[index])
+                        break;
+                }
+                if (index == 0)
+                    result = colors[0];
+                else
+                {
+                    float levelUnit = colorStops[index] - colorStops[index - 1];
+                    float lerpSegment = (ratio - colorStops[index - 1]) / levelUnit;
+                    result = Hlsl.Lerp(ToScRgba(colors[index - 1]), ToScRgba(colors[index]), lerpSegment);
+                }
             }
 
             if (contourLevels > 0)

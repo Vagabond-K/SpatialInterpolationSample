@@ -6,7 +6,8 @@ cbuffer params : register(b0)
     float minimum;
 }
 Texture2D<float> values : register(t0);
-Texture1D<float4> colorLevels : register(t1);
+Texture1D<float4> colors : register(t1);
+Texture1D<float> colorStops : register(t2);
 RWTexture2D<float4> results : register(u0);
 
 float toSRgb(float value)
@@ -58,21 +59,31 @@ float getCtLevel(int x, int y, float contour)
 void CS(uint3 id : SV_DispatchThreadID)
 {
     uint colorsCount;
-    colorLevels.GetDimensions(colorsCount);
+    colors.GetDimensions(colorsCount);
     float4 result = float4(0, 0, 0, 0);
     float ratio = toRatio(id.xy);
     
     if (colorsCount == 1)
     {
-        result = colorLevels[0];
+        result = colors[0];
     }
     else if (colorsCount > 1)
     {
-        colorsCount -= 1;
-        float levelUnit = 1.0 / colorsCount;
-        int index = (int) floor(ratio * colorsCount);
-        float lerpSegment = (ratio - levelUnit * index) / levelUnit;
-        result = lerp(toScRgba(colorLevels[index]), toScRgba(colorLevels[index + 1]), lerpSegment);
+        colorsCount--;
+        
+        for (int index = 0; index < colorsCount; index++)
+        {
+            if (ratio < colorStops[index])
+                break;
+        }
+        if (index == 0)
+            result = colors[0];
+        else
+        {
+            float levelUnit = colorStops[index] - colorStops[index - 1];
+            float lerpSegment = (ratio - colorStops[index - 1]) / levelUnit;
+            result = lerp(toScRgba(colors[index - 1]), toScRgba(colors[index]), lerpSegment);
+        }
     }
         
     if (contourLevels > 0)

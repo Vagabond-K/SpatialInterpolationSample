@@ -27,11 +27,13 @@ namespace SpatialInterpolation
         private MemoryBuffer2D<int, Stride2D.DenseX> resultsBuffer;
         private MemoryBuffer2D<float, Stride2D.DenseX> valuesBuffer;
         private MemoryBuffer1D<Vector4, Stride1D.Dense> colorsBuffer;
+        private MemoryBuffer1D<float, Stride1D.Dense> colorStopsBuffer;
         private Action<Index2D, SpatialHeatMapKernel> kernel;
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             resultsBuffer?.Dispose();
+            colorStopsBuffer?.Dispose();
             colorsBuffer?.Dispose();
             valuesBuffer?.Dispose();
             accelerator?.Dispose();
@@ -44,7 +46,8 @@ namespace SpatialInterpolation
             {
 
                 var dataSource = DataSource;
-                var colors = Colors?.Select(color => new Vector4(color.ScR, color.ScG, color.ScB, color.ScA)).ToArray();
+                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => new Vector4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
+                var colorStops = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (float)stop.Offset)?.ToArray();
 
                 if (dataSource == null || colors == null)
                 {
@@ -84,11 +87,17 @@ namespace SpatialInterpolation
                     colorsBuffer?.Dispose();
                     colorsBuffer = accelerator.Allocate1D<Vector4>(colors.Length);
                 }
+                if (colorStopsBuffer?.IsDisposed != false || colorStopsBuffer.Length != colorStops.Length)
+                {
+                    colorStopsBuffer?.Dispose();
+                    colorStopsBuffer = accelerator.Allocate1D<float>(colors.Length);
+                }
 
                 valuesBuffer.CopyFromCPU(dataSource);
                 colorsBuffer.CopyFromCPU(colors);
+                colorStopsBuffer.CopyFromCPU(colorStops);
 
-                var kernelData = new SpatialHeatMapKernel(resultsBuffer.View, colorsBuffer.View, valuesBuffer.View, new Vector4(1, 1, 1, 1), (uint)ContourLevels, Maximum, Minimum);
+                var kernelData = new SpatialHeatMapKernel(resultsBuffer.View, colorsBuffer.View, colorStopsBuffer.View, valuesBuffer.View, new Vector4(1, 1, 1, 1), (uint)ContourLevels, Maximum, Minimum);
                 kernel(new Index2D(height, width), kernelData);
 
                 var results = resultsBuffer.GetAsArray2D();

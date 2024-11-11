@@ -18,12 +18,14 @@ namespace SpatialInterpolation
         private readonly object lockObject = new();
         private ReadWriteTexture2D<Bgra32, float4> resultsBuffer;
         private ReadOnlyTexture1D<Bgra32, float4> colorsBuffer;
+        private ReadOnlyTexture1D<float> colorStopsBuffer;
         private ReadOnlyTexture2D<float> valuesBuffer;
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             resultsBuffer?.Dispose();
             colorsBuffer?.Dispose();
+            colorStopsBuffer?.Dispose();
             valuesBuffer?.Dispose();
         }
 
@@ -32,7 +34,8 @@ namespace SpatialInterpolation
             lock (lockObject)
             {
                 var dataSource = DataSource;
-                var colors = Colors?.Select(color => new Bgra32(color.R, color.G, color.B, color.A))?.ToArray();
+                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => new Bgra32(stop.Color.R, stop.Color.G, stop.Color.B, stop.Color.A))?.ToArray();
+                var colorStops = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (float)stop.Offset)?.ToArray();
 
                 if (dataSource == null || colors == null)
                 {
@@ -60,11 +63,14 @@ namespace SpatialInterpolation
                     valuesBuffer = device.AllocateReadOnlyTexture2D<float>(width, height);
                 if (colorsBuffer == null || colorsBuffer.Width != colors.Length)
                     colorsBuffer = device.AllocateReadOnlyTexture1D<Bgra32, float4>(colors.Length);
+                if (colorStopsBuffer == null || colorStopsBuffer.Width != colors.Length)
+                    colorStopsBuffer = device.AllocateReadOnlyTexture1D<float>(colors.Length);
 
                 valuesBuffer.CopyFrom(dataSource);
                 colorsBuffer.CopyFrom(colors);
+                colorStopsBuffer.CopyFrom(colorStops);
 
-                device.For(width, height, new SpatialHeatMapShader(resultsBuffer, colorsBuffer, valuesBuffer, new float4(1, 1, 1, 1), (uint)ContourLevels, Maximum, Minimum));
+                device.For(width, height, new SpatialHeatMapShader(resultsBuffer, colorsBuffer, colorStopsBuffer, valuesBuffer, new float4(1, 1, 1, 1), (uint)ContourLevels, Maximum, Minimum));
 
                 unsafe
                 {

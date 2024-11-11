@@ -61,6 +61,7 @@ namespace SpatialInterpolation
         private ComputeShader shader;
         private Buffer parametersBuffer;
         private ShaderResourceView colorsView;
+        private ShaderResourceView colorStopsView;
         private ShaderResourceView valuesView;
         private UnorderedAccessView heatMapView;
         private Texture2D resultsTexture;
@@ -71,6 +72,10 @@ namespace SpatialInterpolation
             {
                 var resource = colorsView?.Resource;
                 Utilities.Dispose(ref colorsView);
+                Utilities.Dispose(ref resource);
+
+                resource = colorStopsView?.Resource;
+                Utilities.Dispose(ref colorStopsView);
                 Utilities.Dispose(ref resource);
             }
         }
@@ -106,7 +111,8 @@ namespace SpatialInterpolation
             lock (lockObject)
             {
                 var dataSource = DataSource;
-                var colors = Colors?.Select(color => (color.A << 24) | (color.R << 16) | (color.G << 8) | color.B)?.ToArray();
+                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (stop.Color.A << 24) | (stop.Color.R << 16) | (stop.Color.G << 8) | stop.Color.B)?.ToArray();
+                var colorStops = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (float)stop.Offset)?.ToArray();
 
                 if (dataSource == null || colors == null)
                 {
@@ -114,7 +120,7 @@ namespace SpatialInterpolation
                     return;
                 }
 
-                var parameters = new HeatMapParameters(System.Windows.Media.Colors.White, (uint)ContourLevels, Maximum, Minimum);
+                var parameters = new HeatMapParameters(Colors.White, (uint)ContourLevels, Maximum, Minimum);
                 var width = dataSource.GetLength(1);
                 var height = dataSource.GetLength(0);
 
@@ -147,6 +153,8 @@ namespace SpatialInterpolation
 
                 if (colorsView?.Resource?.IsDisposed != false || colorsView?.IsDisposed != false)
                     colorsView = new ShaderResourceView(device, device.CreateTexture1D(colors.Length, SharpDX.DXGI.Format.B8G8R8A8_UNorm));
+                if (colorStopsView?.Resource?.IsDisposed != false || colorStopsView?.IsDisposed != false)
+                    colorStopsView = new ShaderResourceView(device, device.CreateTexture1D(colors.Length, SharpDX.DXGI.Format.R32_Float));
                 if (valuesView?.Resource?.IsDisposed != false || valuesView?.IsDisposed != false)
                     valuesView = new ShaderResourceView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float));
                 if (heatMapView?.Resource?.IsDisposed != false || heatMapView?.IsDisposed != false)
@@ -166,9 +174,11 @@ namespace SpatialInterpolation
 
                 context.UpdateSubresource(ref parameters, parametersBuffer);
                 context.UpdateSubresource(colors, colorsView.Resource);
+                context.UpdateSubresource(colorStops, colorStopsView.Resource);
                 context.ComputeShader.SetConstantBuffer(0, parametersBuffer);
                 context.ComputeShader.SetShaderResource(0, valuesView);
                 context.ComputeShader.SetShaderResource(1, colorsView);
+                context.ComputeShader.SetShaderResource(2, colorStopsView);
                 context.ComputeShader.SetUnorderedAccessView(0, heatMapView);
 
                 context.Dispatch(Math.Max(1, (width + 31) / 32), Math.Max(1, (height + 31) / 32), 1);
