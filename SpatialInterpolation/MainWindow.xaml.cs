@@ -12,6 +12,8 @@ namespace SpatialInterpolation
         {
             InitializeComponent();
 
+            Title = $"{Title} - {typeof(MainWindow).Assembly.GetName().Name}";
+
             heatMap.MouseLeftButtonDown += (sender, e) =>
             {
                 if (!heatMap.IsMouseCaptured)
@@ -35,15 +37,22 @@ namespace SpatialInterpolation
             };
 
             var mainViewModel = new MainViewModel();
+
             //mainViewModel.Samples.Add(new Sample(mainViewModel.Width / 3, mainViewModel.Height / 3, 0));
             //mainViewModel.Samples.Add(new Sample(mainViewModel.Width * 2 / 3, mainViewModel.Height / 3, 25));
             //mainViewModel.Samples.Add(new Sample(mainViewModel.Width / 3, mainViewModel.Height * 2 / 3, 75));
             //mainViewModel.Samples.Add(new Sample(mainViewModel.Width * 2 / 3, mainViewModel.Height * 2 / 3, 100));
-            var random = new Random();
+            var random = new Random(1234567890);
+            var width = mainViewModel.Width;
+            var height = mainViewModel.Height;
+            var min = heatMap.Minimum;
+            var max = heatMap.Maximum;
             for (int i = 0; i < 50; i++)
-            {
-                mainViewModel.Samples.Add(new Sample((float)random.NextDouble() * mainViewModel.Width, (float)random.NextDouble() * mainViewModel.Height, (float)random.NextDouble() * 100));
-            }
+                mainViewModel.Samples.Add(new Sample(
+                    (float)random.NextDouble() * width,
+                    (float)random.NextDouble() * height,
+                    (float)random.NextDouble() * (max - min) + min));
+
             mainViewModel.SelectedSample = mainViewModel.Samples.FirstOrDefault();
 
             DataContext = mainViewModel;
