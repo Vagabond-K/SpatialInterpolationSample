@@ -130,7 +130,7 @@ namespace SpatialInterpolation
                     DisposeColorsResources();
                     Utilities.Dispose(ref shader);
                     Utilities.Dispose(ref device);
-                    device = new Device(DriverType.Hardware, DeviceCreationFlags.Debug);
+                    device = new Device(DriverType.Hardware, DeviceCreationFlags.None);
                 }
 
                 var context = device.ImmediateContext;

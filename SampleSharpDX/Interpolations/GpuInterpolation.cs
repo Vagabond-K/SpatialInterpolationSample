@@ -96,7 +96,7 @@ namespace SpatialInterpolation.Interpolations
                         DisposeSamplesResources();
                         Utilities.Dispose(ref shader);
                         Utilities.Dispose(ref device);
-                        device = new Device(DriverType.Hardware, DeviceCreationFlags.Debug);
+                        device = new Device(DriverType.Hardware, DeviceCreationFlags.None);
                     }
 
                     if (shader?.IsDisposed != false)
