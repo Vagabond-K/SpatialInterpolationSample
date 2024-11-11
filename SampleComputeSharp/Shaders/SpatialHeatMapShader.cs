@@ -1,4 +1,5 @@
 ﻿using ComputeSharp;
+using System.Numerics;
 
 namespace SpatialInterpolation.Shaders
 {

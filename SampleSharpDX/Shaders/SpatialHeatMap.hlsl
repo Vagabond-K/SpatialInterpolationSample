@@ -1,3 +1,7 @@
+RWTexture2D<float4> results : register(u0);
+Texture1D<float4> colors : register(t0);
+Texture1D<float> colorStops : register(t1);
+Texture2D<float> values : register(t2);
 cbuffer params : register(b0)
 {
     float4 contourColor;
@@ -5,10 +9,6 @@ cbuffer params : register(b0)
     float maximum;
     float minimum;
 }
-Texture2D<float> values : register(t0);
-Texture1D<float4> colors : register(t1);
-Texture1D<float> colorStops : register(t2);
-RWTexture2D<float4> results : register(u0);
 
 float toSRgb(float value)
 {

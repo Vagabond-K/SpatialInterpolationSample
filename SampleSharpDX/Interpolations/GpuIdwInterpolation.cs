@@ -21,14 +21,16 @@ namespace SpatialInterpolation.Interpolations
 
         protected override void Configure(Device device, IEnumerable<SpatialSample> samples, float[,] target)
         {
-            var parameters = new IdwInterpolationParameters(SearchRadius, WeightPower);
+            var context = device.ImmediateContext;
 
             if (parametersBuffer?.IsDisposed != false)
+            {
                 parametersBuffer = new Buffer(device, new BufferDescription((int)Math.Ceiling(Marshal.SizeOf<IdwInterpolationParameters>() / 16d) * 16, BindFlags.ConstantBuffer, ResourceUsage.Default));
+                context.ComputeShader.SetConstantBuffer(0, parametersBuffer);
+            }
 
-            var context = device.ImmediateContext;
+            var parameters = new IdwInterpolationParameters(SearchRadius, WeightPower);
             context.UpdateSubresource(ref parameters, parametersBuffer);
-            context.ComputeShader.SetConstantBuffer(0, parametersBuffer);
         }
 
         protected override void Dispose(bool disposing)

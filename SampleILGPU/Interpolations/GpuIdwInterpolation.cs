@@ -20,7 +20,7 @@ namespace SpatialInterpolation.Interpolations
         private Context context;
         private Device device;
         private Accelerator accelerator;
-        private MemoryBuffer2D<float, Stride2D.DenseY> resultsBuffer;
+        private MemoryBuffer2D<float, Stride2D.DenseX> resultsBuffer;
         private MemoryBuffer1D<Vector3, Stride1D.Dense> samplesBuffer;
         private Action<Index2D, GpuIdwInterpolationKernel> kernel;
         private bool disposedValue;
@@ -42,7 +42,7 @@ namespace SpatialInterpolation.Interpolations
                     {
                         accelerator?.Dispose();
                         context = Context.Create(b => b.AllAccelerators().EnableAlgorithms());
-                        device = context.Devices.FirstOrDefault(device => !(device is CPUDevice)) ?? context.Devices.FirstOrDefault();
+                        device = context.Devices.FirstOrDefault(device => device is not CPUDevice) ?? context.Devices.FirstOrDefault();
                     }
 
                     if (accelerator?.IsDisposed != false)
@@ -54,7 +54,7 @@ namespace SpatialInterpolation.Interpolations
                     if (resultsBuffer == null || resultsBuffer.Extent.X != height || resultsBuffer.Extent.Y != width)
                     {
                         resultsBuffer?.Dispose();
-                        resultsBuffer = accelerator.Allocate2DDenseY<float>(new Index2D(height, width));
+                        resultsBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(height, width));
                     }
                     if (samplesBuffer == null || samplesBuffer.Length != sampleArray.Length)
                     {

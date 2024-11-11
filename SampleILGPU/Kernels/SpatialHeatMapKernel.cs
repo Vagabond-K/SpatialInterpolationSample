@@ -4,7 +4,15 @@ using System.Numerics;
 
 namespace SpatialInterpolation.Kernels
 {
-    struct SpatialHeatMapKernel(ArrayView2D<int, Stride2D.DenseX> results, ArrayView1D<Vector4, Stride1D.Dense> colors, ArrayView1D<float, Stride1D.Dense> colorStops, ArrayView2D<float, Stride2D.DenseX> values, Vector4 contourColor, uint contourLevels, float maximum, float minimum)
+    struct SpatialHeatMapKernel(
+        ArrayView2D<int, Stride2D.DenseX> results,
+        ArrayView1D<Vector4, Stride1D.Dense> colors,
+        ArrayView1D<float, Stride1D.Dense> colorStops,
+        ArrayView2D<float, Stride2D.DenseX> values,
+        Vector4 contourColor,
+        uint contourLevels,
+        float maximum,
+        float minimum)
     {
         private readonly float ToRatio(Index2D id)
             => float.IsNaN(values[id]) ? 0.0f : float.Max(0f, float.Min(1f, (values[id] - minimum) / (maximum - minimum)));

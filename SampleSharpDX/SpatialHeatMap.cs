@@ -133,14 +133,13 @@ namespace SpatialInterpolation
                     device = new Device(DriverType.Hardware, DeviceCreationFlags.Debug);
                 }
 
+                var context = device.ImmediateContext;
+
                 if (shader?.IsDisposed != false)
                 {
                     shader = new ComputeShader(device, heatMapCode);
-                    device.ImmediateContext.ComputeShader.Set(shader);
+                    context.ComputeShader.Set(shader);
                 }
-
-                if (parametersBuffer?.IsDisposed != false)
-                    parametersBuffer = new Buffer(device, new BufferDescription((int)Math.Ceiling(Marshal.SizeOf<HeatMapParameters>() / 16d) * 16, BindFlags.ConstantBuffer, ResourceUsage.Default));
 
                 if (!(colorsView?.Resource is Texture1D tex) || tex.Description.Width != colors.Length)
                     DisposeColorsResources();
@@ -152,17 +151,32 @@ namespace SpatialInterpolation
                 }
 
                 if (colorsView?.Resource?.IsDisposed != false || colorsView?.IsDisposed != false)
+                {
                     colorsView = new ShaderResourceView(device, device.CreateTexture1D(colors.Length, SharpDX.DXGI.Format.B8G8R8A8_UNorm));
+                    context.ComputeShader.SetShaderResource(0, colorsView);
+                }
                 if (colorStopsView?.Resource?.IsDisposed != false || colorStopsView?.IsDisposed != false)
+                {
                     colorStopsView = new ShaderResourceView(device, device.CreateTexture1D(colors.Length, SharpDX.DXGI.Format.R32_Float));
+                    context.ComputeShader.SetShaderResource(1, colorStopsView);
+                }
                 if (valuesView?.Resource?.IsDisposed != false || valuesView?.IsDisposed != false)
+                {
                     valuesView = new ShaderResourceView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float));
+                    context.ComputeShader.SetShaderResource(2, valuesView);
+                }
                 if (heatMapView?.Resource?.IsDisposed != false || heatMapView?.IsDisposed != false)
+                {
                     heatMapView = new UnorderedAccessView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.B8G8R8A8_UNorm, BindFlags.UnorderedAccess));
+                    context.ComputeShader.SetUnorderedAccessView(0, heatMapView);
+                }
+                if (parametersBuffer?.IsDisposed != false)
+                {
+                    parametersBuffer = new Buffer(device, new BufferDescription((int)Math.Ceiling(Marshal.SizeOf<HeatMapParameters>() / 16d) * 16, BindFlags.ConstantBuffer, ResourceUsage.Default));
+                    context.ComputeShader.SetConstantBuffer(0, parametersBuffer);
+                }
                 if (resultsTexture?.IsDisposed != false)
                     resultsTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.B8G8R8A8_UNorm, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
-
-                var context = device.ImmediateContext;
 
                 unsafe
                 {
@@ -172,14 +186,9 @@ namespace SpatialInterpolation
                     }
                 }
 
-                context.UpdateSubresource(ref parameters, parametersBuffer);
                 context.UpdateSubresource(colors, colorsView.Resource);
                 context.UpdateSubresource(colorStops, colorStopsView.Resource);
-                context.ComputeShader.SetConstantBuffer(0, parametersBuffer);
-                context.ComputeShader.SetShaderResource(0, valuesView);
-                context.ComputeShader.SetShaderResource(1, colorsView);
-                context.ComputeShader.SetShaderResource(2, colorStopsView);
-                context.ComputeShader.SetUnorderedAccessView(0, heatMapView);
+                context.UpdateSubresource(ref parameters, parametersBuffer);
 
                 context.Dispatch(Math.Max(1, (width + 31) / 32), Math.Max(1, (height + 31) / 32), 1);
                 context.CopyResource(heatMapView.Resource, resultsTexture);

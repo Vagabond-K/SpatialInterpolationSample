@@ -62,15 +62,28 @@ namespace SpatialInterpolation
                 if (valuesBuffer == null)
                     valuesBuffer = device.AllocateReadOnlyTexture2D<float>(width, height);
                 if (colorsBuffer == null || colorsBuffer.Width != colors.Length)
+                {
+                    colorsBuffer?.Dispose();
                     colorsBuffer = device.AllocateReadOnlyTexture1D<Bgra32, float4>(colors.Length);
+                }
                 if (colorStopsBuffer == null || colorStopsBuffer.Width != colors.Length)
+                {
+                    colorStopsBuffer?.Dispose();
                     colorStopsBuffer = device.AllocateReadOnlyTexture1D<float>(colors.Length);
-
+                }
                 valuesBuffer.CopyFrom(dataSource);
                 colorsBuffer.CopyFrom(colors);
                 colorStopsBuffer.CopyFrom(colorStops);
 
-                device.For(width, height, new SpatialHeatMapShader(resultsBuffer, colorsBuffer, colorStopsBuffer, valuesBuffer, new float4(1, 1, 1, 1), (uint)ContourLevels, Maximum, Minimum));
+                device.For(width, height, new SpatialHeatMapShader(
+                    resultsBuffer,
+                    colorsBuffer,
+                    colorStopsBuffer,
+                    valuesBuffer,
+                    new float4(1, 1, 1, 1),
+                    (uint)ContourLevels,
+                    Maximum,
+                    Minimum));
 
                 unsafe
                 {

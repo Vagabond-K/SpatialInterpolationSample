@@ -4,7 +4,11 @@ using System.Numerics;
 
 namespace SpatialInterpolation.Kernels
 {
-    struct GpuIdwInterpolationKernel(ArrayView2D<float, Stride2D.DenseY> results, ArrayView1D<Vector3, Stride1D.Dense> samples, float searchRadius, float weightPower)
+    struct GpuIdwInterpolationKernel(
+        ArrayView2D<float, Stride2D.DenseX> results,
+        ArrayView1D<Vector3, Stride1D.Dense> samples,
+        float searchRadius,
+        float weightPower)
     {
         private void ExecuteKernel(Index2D id)
         {

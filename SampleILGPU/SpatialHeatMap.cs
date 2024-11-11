@@ -44,7 +44,6 @@ namespace SpatialInterpolation
         {
             lock (lockObject)
             {
-
                 var dataSource = DataSource;
                 var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => new Vector4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
                 var colorStops = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (float)stop.Offset)?.ToArray();
@@ -69,7 +68,7 @@ namespace SpatialInterpolation
                 {
                     accelerator?.Dispose();
                     context = Context.Create(b => b.AllAccelerators().EnableAlgorithms());
-                    device = context.Devices.FirstOrDefault(device => !(device is CPUDevice)) ?? context.Devices.FirstOrDefault();
+                    device = context.Devices.FirstOrDefault(device => device is not CPUDevice) ?? context.Devices.FirstOrDefault();
                 }
 
                 if (accelerator?.IsDisposed != false)
@@ -97,7 +96,15 @@ namespace SpatialInterpolation
                 colorsBuffer.CopyFromCPU(colors);
                 colorStopsBuffer.CopyFromCPU(colorStops);
 
-                var kernelData = new SpatialHeatMapKernel(resultsBuffer.View, colorsBuffer.View, colorStopsBuffer.View, valuesBuffer.View, new Vector4(1, 1, 1, 1), (uint)ContourLevels, Maximum, Minimum);
+                var kernelData = new SpatialHeatMapKernel(
+                    resultsBuffer.View,
+                    colorsBuffer.View,
+                    colorStopsBuffer.View,
+                    valuesBuffer.View,
+                    new Vector4(1, 1, 1, 1),
+                    (uint)ContourLevels,
+                    Maximum,
+                    Minimum);
                 kernel(new Index2D(height, width), kernelData);
 
                 var results = resultsBuffer.GetAsArray2D();
