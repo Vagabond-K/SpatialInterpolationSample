@@ -17,7 +17,7 @@ namespace SpatialInterpolation
         public int Width { get => Get(800); set => Set(value); }
         public int Height { get => Get(600); set => Set(value); }
 
-        public bool UseGPU { get => Get(false); set => Set(value); }
+        public bool UseGPU { get => Get(true); set => Set(value); }
         public bool IsBusy { get => Get(false); set => Set(value); }
         public long Duration { get => Get(0L); set => Set(value); }
 
