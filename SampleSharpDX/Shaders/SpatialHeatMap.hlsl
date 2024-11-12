@@ -1,4 +1,4 @@
-RWTexture2D<float4> results : register(u0);
+RWTexture2D<int> results : register(u0);
 Texture1D<float4> colors : register(t0);
 Texture1D<float> colorStops : register(t1);
 Texture2D<float> values : register(t2);
@@ -25,23 +25,6 @@ float toSRgb(float value)
 float4 toSRgba(float4 color)
 {
     return float4(toSRgb(color.r), toSRgb(color.g), toSRgb(color.b), color.a);
-}
-
-float toScRgb(float value)
-{
-    if (!(value > 0.0))
-        return (0.0);
-    else if (value <= 0.04045)
-        return (value / 12.92);
-    else if (value < 1.0)
-        return pow((value + 0.055) / 1.055, 2.4);
-    else
-        return (1.0f);
-}
-
-float4 toScRgba(float4 color)
-{
-    return float4(toScRgb(color.r), toScRgb(color.g), toScRgb(color.b), color.a);
 }
 
 float toRatio(int2 id)
@@ -82,7 +65,7 @@ void CS(uint3 id : SV_DispatchThreadID)
         {
             float levelUnit = colorStops[index] - colorStops[index - 1];
             float lerpSegment = (ratio - colorStops[index - 1]) / levelUnit;
-            result = lerp(toScRgba(colors[index - 1]), toScRgba(colors[index]), lerpSegment);
+            result = lerp(colors[index - 1], colors[index], lerpSegment);
         }
     }
         
@@ -108,8 +91,14 @@ void CS(uint3 id : SV_DispatchThreadID)
 
         float edgeRatio = sqrt(h * h + v * v) * contourColor.a;
         if (edgeRatio > 0)
-            result = lerp(toScRgba(result), toScRgba(float4(contourColor.rgb, 1)), edgeRatio);
+            result = lerp(result, float4(contourColor.rgb, 1), edgeRatio);
     }
 
-    results[id.xy] = toSRgba(result);
+    result = toSRgba(result);
+
+    results[id.xy] =
+        ((int) (result.a * 255) << 24)
+        | ((int) (result.r * 255) << 16)
+        | ((int) (result.g * 255) << 8)
+        | ((int) (result.b * 255));
 }

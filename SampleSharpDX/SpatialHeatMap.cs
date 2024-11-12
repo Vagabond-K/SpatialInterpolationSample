@@ -56,7 +56,7 @@ namespace SpatialInterpolation
         }
 
         private readonly object lockObject = new object();
-        private ShaderBytecode heatMapCode = ShaderUtilities.LoadShaderByteCode(new Uri($"pack://application:,,,/{typeof(SpatialHeatMap).Assembly.GetName().Name};component/Shaders/{nameof(SpatialHeatMap)}.hlsl"));
+        private ShaderBytecode heatMapCode;
         private Device device;
         private ComputeShader shader;
         private Buffer parametersBuffer;
@@ -111,7 +111,7 @@ namespace SpatialInterpolation
             lock (lockObject)
             {
                 var dataSource = DataSource;
-                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (stop.Color.A << 24) | (stop.Color.R << 16) | (stop.Color.G << 8) | stop.Color.B)?.ToArray();
+                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => new Color4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
                 var colorStops = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (float)stop.Offset)?.ToArray();
 
                 if (dataSource == null || colors == null)
@@ -135,6 +135,9 @@ namespace SpatialInterpolation
 
                 var context = device.ImmediateContext;
 
+                if (heatMapCode == null)
+                    heatMapCode = ShaderUtilities.LoadShaderByteCode(new Uri($"pack://application:,,,/{typeof(SpatialHeatMap).Assembly.GetName().Name};component/Shaders/{nameof(SpatialHeatMap)}.hlsl"));
+
                 if (shader?.IsDisposed != false)
                 {
                     shader = new ComputeShader(device, heatMapCode);
@@ -152,7 +155,7 @@ namespace SpatialInterpolation
 
                 if (colorsView?.Resource?.IsDisposed != false || colorsView?.IsDisposed != false)
                 {
-                    colorsView = new ShaderResourceView(device, device.CreateTexture1D(colors.Length, SharpDX.DXGI.Format.B8G8R8A8_UNorm));
+                    colorsView = new ShaderResourceView(device, device.CreateTexture1D(colors.Length, SharpDX.DXGI.Format.R32G32B32A32_Float));
                     context.ComputeShader.SetShaderResource(0, colorsView);
                 }
                 if (colorStopsView?.Resource?.IsDisposed != false || colorStopsView?.IsDisposed != false)
@@ -167,7 +170,7 @@ namespace SpatialInterpolation
                 }
                 if (heatMapView?.Resource?.IsDisposed != false || heatMapView?.IsDisposed != false)
                 {
-                    heatMapView = new UnorderedAccessView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.B8G8R8A8_UNorm, BindFlags.UnorderedAccess));
+                    heatMapView = new UnorderedAccessView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_SInt, BindFlags.UnorderedAccess));
                     context.ComputeShader.SetUnorderedAccessView(0, heatMapView);
                 }
                 if (parametersBuffer?.IsDisposed != false)
@@ -176,7 +179,7 @@ namespace SpatialInterpolation
                     context.ComputeShader.SetConstantBuffer(0, parametersBuffer);
                 }
                 if (resultsTexture?.IsDisposed != false)
-                    resultsTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.B8G8R8A8_UNorm, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
+                    resultsTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_SInt, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
 
                 unsafe
                 {
