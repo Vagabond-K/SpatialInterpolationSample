@@ -42,7 +42,7 @@ namespace SpatialInterpolation.Interpolations
                                 weights += weight;
                             }
                         }
-                        target[y, x] = weights == 0 ? float.NaN : (float)(sum / weights);
+                        target[y, x] = sum / weights;
                     }
                 }
             }, cancellationToken);
