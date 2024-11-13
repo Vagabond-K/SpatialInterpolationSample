@@ -16,8 +16,8 @@ namespace SpatialInterpolation
         }
 
         private readonly object lockObject = new();
-        private ReadWriteTexture2D<Bgra32, float4> resultsBuffer;
-        private ReadOnlyTexture1D<Bgra32, float4> colorsBuffer;
+        private ReadWriteTexture2D<int> resultsBuffer;
+        private ReadOnlyTexture1D<float4> colorsBuffer;
         private ReadOnlyTexture1D<float> colorStopsBuffer;
         private ReadOnlyTexture2D<float> valuesBuffer;
 
@@ -34,7 +34,7 @@ namespace SpatialInterpolation
             lock (lockObject)
             {
                 var dataSource = DataSource;
-                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => new Bgra32(stop.Color.R, stop.Color.G, stop.Color.B, stop.Color.A))?.ToArray();
+                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => new float4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
                 var colorStops = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (float)stop.Offset)?.ToArray();
 
                 if (dataSource == null || colors == null)
@@ -58,13 +58,13 @@ namespace SpatialInterpolation
                 var device = GraphicsDevice.GetDefault();
 
                 if (resultsBuffer == null)
-                    resultsBuffer = device.AllocateReadWriteTexture2D<Bgra32, float4>(width, height);
+                    resultsBuffer = device.AllocateReadWriteTexture2D<int>(width, height);
                 if (valuesBuffer == null)
                     valuesBuffer = device.AllocateReadOnlyTexture2D<float>(width, height);
                 if (colorsBuffer == null || colorsBuffer.Width != colors.Length)
                 {
                     colorsBuffer?.Dispose();
-                    colorsBuffer = device.AllocateReadOnlyTexture1D<Bgra32, float4>(colors.Length);
+                    colorsBuffer = device.AllocateReadOnlyTexture1D<float4>(colors.Length);
                 }
                 if (colorStopsBuffer == null || colorStopsBuffer.Width != colors.Length)
                 {
@@ -89,7 +89,7 @@ namespace SpatialInterpolation
                 {
                     bitmap.Lock();
                     Bgra32* pointer = (Bgra32*)bitmap.BackBuffer;
-                    Span<Bgra32> results = new(pointer, width * height);
+                    Span<int> results = new(pointer, width * height);
                     resultsBuffer.CopyTo(results);
                     bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
                     bitmap.Unlock();

@@ -1,13 +1,12 @@
 ﻿using ComputeSharp;
-using System.Numerics;
 
 namespace SpatialInterpolation.Shaders
 {
     [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
     [GeneratedComputeShaderDescriptor]
     public readonly partial struct SpatialHeatMapShader(
-        ReadWriteTexture2D<Bgra32, float4> results,
-        ReadOnlyTexture1D<Bgra32, float4> colors,
+        ReadWriteTexture2D<int> results,
+        ReadOnlyTexture1D<float4> colors,
         ReadOnlyTexture1D<float> colorStops,
         ReadOnlyTexture2D<float> values,
         float4 contourColor,
@@ -29,21 +28,6 @@ namespace SpatialInterpolation.Shaders
 
         private static float4 ToSRgba(float4 color)
             => new(ToSRgb(color.R), ToSRgb(color.G), ToSRgb(color.B), color.A);
-
-        private static float ToScRgb(float value)
-        {
-            if (!(value > 0.0f))
-                return (0.0f);
-            else if (value <= 0.04045f)
-                return (value / 12.92f);
-            else if (value < 1.0f)
-                return Hlsl.Pow((value + 0.055f) / 1.055f, 2.4f);
-            else
-                return (1.0f);
-        }
-
-        private static float4 ToScRgba(float4 color)
-            => new(ToScRgb(color.R), ToScRgb(color.G), ToScRgb(color.B), color.A);
 
         private float ToRatio(int2 id)
             => Hlsl.IsNaN(values[id]) ? 0.0f : Hlsl.Clamp((values[id] - minimum) / (maximum - minimum), 0, 1);
@@ -81,7 +65,7 @@ namespace SpatialInterpolation.Shaders
                 {
                     float levelUnit = colorStops[index] - colorStops[index - 1];
                     float lerpSegment = (ratio - colorStops[index - 1]) / levelUnit;
-                    result = Hlsl.Lerp(ToScRgba(colors[index - 1]), ToScRgba(colors[index]), lerpSegment);
+                    result = Hlsl.Lerp(colors[index - 1], colors[index], lerpSegment);
                 }
             }
 
@@ -107,10 +91,15 @@ namespace SpatialInterpolation.Shaders
 
                 float edgeRatio = Hlsl.Sqrt(h * h + v * v) * contourColor.A;
                 if (edgeRatio > 0)
-                    result = Hlsl.Lerp(ToScRgba(result), ToScRgba(new float4(contourColor.RGB, 1)), edgeRatio);
+                    result = Hlsl.Lerp(result, new float4(contourColor.RGB, 1), edgeRatio);
             }
 
-            results[ThreadIds.XY] = ToSRgba(result);
+            result = ToSRgba(result);
+
+            results[ThreadIds.XY] = ((int)(result.W * 255f) << 24)
+                | ((int)(result.X * 255f) << 16)
+                | ((int)(result.Y * 255f) << 8)
+                | ((int)(result.Z * 255f));
         }
     }
 }
