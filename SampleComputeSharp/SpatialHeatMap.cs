@@ -16,40 +16,40 @@ namespace SpatialInterpolation
         }
 
         private readonly object lockObject = new();
-        private ReadWriteTexture2D<int> resultsBuffer;
+        private ReadWriteTexture2D<int> heatMapBuffer;
         private ReadOnlyTexture1D<float4> colorsBuffer;
-        private ReadOnlyTexture1D<float> colorStopsBuffer;
+        private ReadOnlyTexture1D<float> offsetsBuffer;
         private ReadOnlyTexture2D<float> valuesBuffer;
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            resultsBuffer?.Dispose();
+            heatMapBuffer?.Dispose();
             colorsBuffer?.Dispose();
-            colorStopsBuffer?.Dispose();
+            offsetsBuffer?.Dispose();
             valuesBuffer?.Dispose();
         }
 
-        private void UpdateBitmap()
+        private void UpdateBitmapInGPU()
         {
             lock (lockObject)
             {
-                var dataSource = DataSource;
-                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => new float4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
-                var colorStops = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (float)stop.Offset)?.ToArray();
+                var values = DataSource;
+                var colors = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => new float4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
+                var offsets = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => (float)stop.Offset)?.ToArray();
 
-                if (dataSource == null || colors == null)
+                if (values == null || colors == null || colors.Length == 0)
                 {
                     bitmap = null;
                     return;
                 }
 
-                var width = dataSource.GetLength(1);
-                var height = dataSource.GetLength(0);
+                var width = values.GetLength(1);
+                var height = values.GetLength(0);
 
                 if (bitmap == null || bitmap.PixelWidth != width || bitmap.PixelHeight != height)
                 {
-                    resultsBuffer?.Dispose();
-                    resultsBuffer = null;
+                    heatMapBuffer?.Dispose();
+                    heatMapBuffer = null;
                     valuesBuffer?.Dispose();
                     valuesBuffer = null;
                     bitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
@@ -57,28 +57,26 @@ namespace SpatialInterpolation
 
                 var device = GraphicsDevice.GetDefault();
 
-                if (resultsBuffer == null)
-                    resultsBuffer = device.AllocateReadWriteTexture2D<int>(width, height);
-                if (valuesBuffer == null)
-                    valuesBuffer = device.AllocateReadOnlyTexture2D<float>(width, height);
+                heatMapBuffer ??= device.AllocateReadWriteTexture2D<int>(width, height);
+                valuesBuffer ??= device.AllocateReadOnlyTexture2D<float>(width, height);
                 if (colorsBuffer == null || colorsBuffer.Width != colors.Length)
                 {
                     colorsBuffer?.Dispose();
                     colorsBuffer = device.AllocateReadOnlyTexture1D<float4>(colors.Length);
                 }
-                if (colorStopsBuffer == null || colorStopsBuffer.Width != colors.Length)
+                if (offsetsBuffer == null || offsetsBuffer.Width != colors.Length)
                 {
-                    colorStopsBuffer?.Dispose();
-                    colorStopsBuffer = device.AllocateReadOnlyTexture1D<float>(colors.Length);
+                    offsetsBuffer?.Dispose();
+                    offsetsBuffer = device.AllocateReadOnlyTexture1D<float>(colors.Length);
                 }
-                valuesBuffer.CopyFrom(dataSource);
+                valuesBuffer.CopyFrom(values);
                 colorsBuffer.CopyFrom(colors);
-                colorStopsBuffer.CopyFrom(colorStops);
+                offsetsBuffer.CopyFrom(offsets);
 
                 device.For(width, height, new SpatialHeatMapShader(
-                    resultsBuffer,
+                    heatMapBuffer,
                     colorsBuffer,
-                    colorStopsBuffer,
+                    offsetsBuffer,
                     valuesBuffer,
                     new float4(1, 1, 1, 1),
                     (uint)ContourLevels,
@@ -90,7 +88,7 @@ namespace SpatialInterpolation
                     bitmap.Lock();
                     Bgra32* pointer = (Bgra32*)bitmap.BackBuffer;
                     Span<int> results = new(pointer, width * height);
-                    resultsBuffer.CopyTo(results);
+                    heatMapBuffer.CopyTo(results);
                     bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
                     bitmap.Unlock();
                 }

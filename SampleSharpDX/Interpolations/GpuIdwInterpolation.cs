@@ -19,7 +19,7 @@ namespace SpatialInterpolation.Interpolations
         protected override ShaderBytecode CreateShaderBytecode()
             => ShaderUtilities.LoadShaderByteCode(new Uri($"pack://application:,,,/{typeof(GpuIdwInterpolation).Assembly.GetName().Name};component/Shaders/{nameof(GpuIdwInterpolation)}.hlsl"));
 
-        protected override void Configure(Device device, IEnumerable<SpatialSample> samples, float[,] target)
+        protected override void Configure(Device device, IEnumerable<SpatialSample> samples, float[,] values)
         {
             var context = device.ImmediateContext;
 

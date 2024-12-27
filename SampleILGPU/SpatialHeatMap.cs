@@ -24,31 +24,31 @@ namespace SpatialInterpolation
         private Context context;
         private Device device;
         private Accelerator accelerator;
-        private MemoryBuffer2D<int, Stride2D.DenseX> resultsBuffer;
+        private MemoryBuffer2D<int, Stride2D.DenseX> heatMapBuffer;
         private MemoryBuffer2D<float, Stride2D.DenseX> valuesBuffer;
         private MemoryBuffer1D<Vector4, Stride1D.Dense> colorsBuffer;
-        private MemoryBuffer1D<float, Stride1D.Dense> colorStopsBuffer;
+        private MemoryBuffer1D<float, Stride1D.Dense> offsetsBuffer;
         private Action<Index2D, SpatialHeatMapKernel> kernel;
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            resultsBuffer?.Dispose();
-            colorStopsBuffer?.Dispose();
+            heatMapBuffer?.Dispose();
+            offsetsBuffer?.Dispose();
             colorsBuffer?.Dispose();
             valuesBuffer?.Dispose();
             accelerator?.Dispose();
             context?.Dispose();
         }
 
-        private void UpdateBitmap()
+        private void UpdateBitmapInGPU()
         {
             lock (lockObject)
             {
                 var dataSource = DataSource;
-                var colors = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => new Vector4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
-                var colorStops = GradientStops?.OrderBy(stop => stop.Offset).Select(stop => (float)stop.Offset)?.ToArray();
+                var colors = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => new Vector4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
+                var colorStops = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => (float)stop.Offset)?.ToArray();
 
-                if (dataSource == null || colors == null)
+                if (dataSource == null || colors == null || colors.Length == 0)
                 {
                     bitmap = null;
                     return;
@@ -59,7 +59,7 @@ namespace SpatialInterpolation
 
                 if (bitmap == null || bitmap.PixelWidth != width || bitmap.PixelHeight != height)
                 {
-                    resultsBuffer?.Dispose();
+                    heatMapBuffer?.Dispose();
                     valuesBuffer?.Dispose();
                     bitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
                 }
@@ -77,8 +77,8 @@ namespace SpatialInterpolation
                     kernel = accelerator.LoadAutoGroupedStreamKernel<Index2D, SpatialHeatMapKernel>(SpatialHeatMapKernel.Execute);
                 }
 
-                if (resultsBuffer?.IsDisposed != false)
-                    resultsBuffer = accelerator.Allocate2DDenseX<int>(new Index2D(height, width));
+                if (heatMapBuffer?.IsDisposed != false)
+                    heatMapBuffer = accelerator.Allocate2DDenseX<int>(new Index2D(height, width));
                 if (valuesBuffer?.IsDisposed != false)
                     valuesBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(height, width));
                 if (colorsBuffer?.IsDisposed != false || colorsBuffer.Length != colors.Length)
@@ -86,20 +86,20 @@ namespace SpatialInterpolation
                     colorsBuffer?.Dispose();
                     colorsBuffer = accelerator.Allocate1D<Vector4>(colors.Length);
                 }
-                if (colorStopsBuffer?.IsDisposed != false || colorStopsBuffer.Length != colorStops.Length)
+                if (offsetsBuffer?.IsDisposed != false || offsetsBuffer.Length != colorStops.Length)
                 {
-                    colorStopsBuffer?.Dispose();
-                    colorStopsBuffer = accelerator.Allocate1D<float>(colors.Length);
+                    offsetsBuffer?.Dispose();
+                    offsetsBuffer = accelerator.Allocate1D<float>(colors.Length);
                 }
 
                 valuesBuffer.CopyFromCPU(dataSource);
                 colorsBuffer.CopyFromCPU(colors);
-                colorStopsBuffer.CopyFromCPU(colorStops);
+                offsetsBuffer.CopyFromCPU(colorStops);
 
                 var kernelData = new SpatialHeatMapKernel(
-                    resultsBuffer.View,
+                    heatMapBuffer.View,
                     colorsBuffer.View,
-                    colorStopsBuffer.View,
+                    offsetsBuffer.View,
                     valuesBuffer.View,
                     new Vector4(1, 1, 1, 1),
                     (uint)ContourLevels,
@@ -107,7 +107,7 @@ namespace SpatialInterpolation
                     Minimum);
                 kernel(new Index2D(height, width), kernelData);
 
-                var results = resultsBuffer.GetAsArray2D();
+                var results = heatMapBuffer.GetAsArray2D();
                 bitmap.WritePixels(new Int32Rect(0, 0, width, height), results, width * bitmap.Format.BitsPerPixel / 8, 0);
             }
         }

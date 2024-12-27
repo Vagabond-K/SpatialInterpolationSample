@@ -5,12 +5,12 @@ namespace SpatialInterpolation.Shaders
     [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
     [GeneratedComputeShaderDescriptor]
     public readonly partial struct SpatialHeatMapShader(
-        ReadWriteTexture2D<int> results,
+        ReadWriteTexture2D<int> heatMap,
         ReadOnlyTexture1D<float4> colors,
-        ReadOnlyTexture1D<float> colorStops,
+        ReadOnlyTexture1D<float> offsets,
         ReadOnlyTexture2D<float> values,
         float4 contourColor,
-        uint contourLevels,
+        uint levels,
         float maximum,
         float minimum) : IComputeShader
     {
@@ -19,7 +19,7 @@ namespace SpatialInterpolation.Shaders
             if (!(value > 0.0f))
                 return 0;
             else if (value <= 0.0031308f)
-                return (value * 12.92f);
+                return value * 12.92f;
             else if (value < 1.0)
                 return 1.055f * Hlsl.Pow(value, 1.0f / 2.4f) - 0.055f;
             else
@@ -29,74 +29,62 @@ namespace SpatialInterpolation.Shaders
         private static float4 ToSRgba(float4 color)
             => new(ToSRgb(color.R), ToSRgb(color.G), ToSRgb(color.B), color.A);
 
-        private float ToRatio(int2 id)
+        private float ToOffset(int2 id)
             => Hlsl.IsNaN(values[id]) ? 0.0f : Hlsl.Clamp((values[id] - minimum) / (maximum - minimum), 0, 1);
 
-        private float GetCtLevel(int x, int y, float contour)
+        private float4 ToColor(float offset)
         {
-            float ratio = Hlsl.Round(ToRatio(new int2(x, y)) * contourLevels) / contourLevels;
-            return ratio > contour ? 0.7f : (ratio < contour ? 0.3f : 0.5f);
+            var ranges = colors.Width - 1;
+
+            int index;
+            for (index = 0; index < ranges; index++)
+                if (offset < offsets[index])
+                    break;
+
+            if (index == 0 || offsets[index] <= offset) return colors[index];
+
+            var range = offsets[index] - offsets[index - 1];
+            var alpha = (offset - offsets[index - 1]) / range;
+            var colorA = colors[index];
+            var colorB = colors[index - 1];
+
+            return Hlsl.Lerp(colorB, colorA, alpha);
+        }
+
+        private float Posterize(int x, int y)
+            => Hlsl.Floor(ToOffset(new int2(x, y)) * levels) / levels;
+
+        private float GetLineOpacity(int currX, int currY)
+        {
+            if (levels < 2) return 0;
+
+            var prevX = currX + (currX <= 0 ? 0 : -1);
+            var prevY = currY + (currY <= 0 ? 0 : -1);
+            var nextX = currX + (currX >= values.Width - 1 ? 0 : 1);
+            var nextY = currY + (currY >= values.Height - 1 ? 0 : 1);
+
+            var gX = Posterize(prevX, prevY) - Posterize(nextX, prevY)
+                + (Posterize(prevX, currY) - Posterize(nextX, currY)) * 2
+                + Posterize(prevX, nextY) - Posterize(nextX, nextY);
+
+            var gY = Posterize(prevX, prevY) - Posterize(prevX, nextY)
+                + (Posterize(currX, prevY) - Posterize(currX, nextY)) * 2
+                + Posterize(nextX, prevY) - Posterize(nextX, nextY);
+
+            gX *= levels / 4f;
+            gY *= levels / 4f;
+
+            return Hlsl.Sqrt(gX * gX + gY * gY);
         }
 
         public void Execute()
         {
-            int colorsCount = colors.Width;
-            float4 result = new(0, 0, 0, 0);
-
-            float ratio = ToRatio(ThreadIds.XY);
-
-            if (colorsCount == 1)
-            {
-                result = colors[0];
-            }
-            else if (colorsCount > 1)
-            {
-                colorsCount--;
-
-                int index;
-                for (index = 0; index < colorsCount; index++)
-                {
-                    if (ratio < colorStops[index])
-                        break;
-                }
-                if (index == 0)
-                    result = colors[0];
-                else
-                {
-                    float levelUnit = colorStops[index] - colorStops[index - 1];
-                    float lerpSegment = (ratio - colorStops[index - 1]) / levelUnit;
-                    result = Hlsl.Lerp(colors[index - 1], colors[index], lerpSegment);
-                }
-            }
-
-            if (contourLevels > 0)
-            {
-
-                int width = values.Width;
-                int height = values.Height;
-
-                int xPrev = ThreadIds.X + (ThreadIds.X <= 0 ? 0 : -1);
-                int xNext = ThreadIds.X + (ThreadIds.X >= width - 1 ? 0 : 1);
-                int yPrev = ThreadIds.Y + (ThreadIds.Y <= 0 ? 0 : -1);
-                int yNext = ThreadIds.Y + (ThreadIds.Y >= height - 1 ? 0 : 1);
-
-                float contour = Hlsl.Round(ratio * contourLevels) / contourLevels;
-
-                float h = -GetCtLevel(xPrev, yPrev, contour) + GetCtLevel(xNext, yPrev, contour)
-                - GetCtLevel(xPrev, ThreadIds.Y, contour) * 2 + GetCtLevel(xNext, ThreadIds.Y, contour) * 2
-                - GetCtLevel(xPrev, yNext, contour) + GetCtLevel(xNext, yNext, contour);
-
-                float v = -GetCtLevel(xPrev, yPrev, contour) - GetCtLevel(ThreadIds.X, yPrev, contour) * 2 - GetCtLevel(xNext, yPrev, contour)
-                + GetCtLevel(xPrev, yNext, contour) + GetCtLevel(ThreadIds.X, yNext, contour) * 2 + GetCtLevel(xNext, yNext, contour);
-
-                float edgeRatio = Hlsl.Sqrt(h * h + v * v) * contourColor.A;
-                if (edgeRatio > 0)
-                    result = Hlsl.Lerp(result, new float4(contourColor.RGB, 1), edgeRatio);
-            }
+            var color = ToColor(ToOffset(ThreadIds.XY));
+            var lineOpacity = GetLineOpacity(ThreadIds.X, ThreadIds.Y) * contourColor.A;
+            var result = Hlsl.Lerp(color, new float4(contourColor.RGB, 1), lineOpacity);
 
             result = ToSRgba(result);
-
-            results[ThreadIds.XY] = ((int)(result.W * 255f) << 24)
+            heatMap[ThreadIds.XY] = ((int)(result.W * 255f) << 24)
                 | ((int)(result.X * 255f) << 16)
                 | ((int)(result.Y * 255f) << 8)
                 | ((int)(result.Z * 255f));

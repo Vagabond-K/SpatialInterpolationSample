@@ -26,8 +26,8 @@ namespace SpatialInterpolation.Interpolations
         private Device device;
         private ComputeShader shader;
         private ShaderResourceView samplesView;
-        private UnorderedAccessView interpolationView;
-        private Texture2D resultsTexture;
+        private UnorderedAccessView valuesView;
+        private Texture2D valuesTexture;
 
         private int lastSampleCount;
         private int lastWidth;
@@ -50,11 +50,11 @@ namespace SpatialInterpolation.Interpolations
         {
             lock (lockObject)
             {
-                var resource = interpolationView?.Resource;
-                Utilities.Dispose(ref interpolationView);
+                var resource = valuesView?.Resource;
+                Utilities.Dispose(ref valuesView);
                 Utilities.Dispose(ref resource);
 
-                Utilities.Dispose(ref resultsTexture);
+                Utilities.Dispose(ref valuesTexture);
             }
         }
 
@@ -80,10 +80,10 @@ namespace SpatialInterpolation.Interpolations
             GC.SuppressFinalize(this);
         }
 
-        public Task Interpolate(IEnumerable<SpatialSample> samples, float[,] target, CancellationToken cancellationToken)
+        public Task Interpolate(IEnumerable<SpatialSample> samples, float[,] values, CancellationToken cancellationToken)
         {
             if (samples == null) throw new ArgumentNullException(nameof(samples));
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            if (values == null) throw new ArgumentNullException(nameof(values));
             var sampleArray = samples.ToArray();
             if (sampleArray.Length == 0) throw new ArgumentOutOfRangeException(nameof(samples));
             return Task.Run(() =>
@@ -105,8 +105,8 @@ namespace SpatialInterpolation.Interpolations
                         device.ImmediateContext.ComputeShader.Set(shader);
                     }
 
-                    int width = target.GetLength(1);
-                    int height = target.GetLength(0);
+                    int width = values.GetLength(1);
+                    int height = values.GetLength(0);
                     var sampleSize = Marshal.SizeOf<SpatialSample>();
 
                     if (lastSampleCount != sampleArray.Length)
@@ -135,42 +135,46 @@ namespace SpatialInterpolation.Interpolations
                                     ElementWidth = sampleArray.Length,
                                 }
                             });
-                    if (interpolationView?.Resource?.IsDisposed != false || interpolationView?.IsDisposed != false)
-                        interpolationView = new UnorderedAccessView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.UnorderedAccess));
-                    if (resultsTexture?.IsDisposed != false)
-                        resultsTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
+                    if (valuesView?.Resource?.IsDisposed != false || valuesView?.IsDisposed != false)
+                        valuesView = new UnorderedAccessView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.UnorderedAccess));
+                    if (valuesTexture?.IsDisposed != false)
+                        valuesTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
 
                     var context = device.ImmediateContext;
 
                     context.ComputeShader.Set(shader);
                     context.UpdateSubresource(sampleArray, samplesView.Resource);
                     context.ComputeShader.SetShaderResource(0, samplesView);
-                    context.ComputeShader.SetUnorderedAccessView(0, interpolationView);
+                    context.ComputeShader.SetUnorderedAccessView(0, valuesView);
 
-                    Configure(device, samples, target);
+                    Configure(device, samples, values);
 
                     context.Dispatch(Math.Max(1, (width + 31) / 32), Math.Max(1, (height + 31) / 32), 1);
-                    context.CopyResource(interpolationView.Resource, resultsTexture);
+                    context.CopyResource(valuesView.Resource, valuesTexture);
 
-                    var dataBox = context.MapSubresource(resultsTexture, 0, MapMode.Read, MapFlags.None);
-                    var source = dataBox.DataPointer;
+                    var dataBox = context.MapSubresource(valuesTexture, 0, MapMode.Read, MapFlags.None);
+                    var sourcePtr = dataBox.DataPointer;
 
                     unsafe
                     {
-                        fixed (float* dataPointer = target)
+                        fixed (float* startPtr = values)
                         {
-                            var dest = new IntPtr(dataPointer);
-                            var destStride = width * sizeof(float);
+                            //Utilities.CopyMemory(new IntPtr(startPtr), sourcePtr, width * height * sizeof(float));
+                            //dataBox.RowPitch와 width * sizeof(float)가 일치하지 않을 수 있으므로 위의 코드는 사용할 수 없음
+                            //대신 아래의 코드를 사용해야 함
+
+                            var valuesPtr = new IntPtr(startPtr);
+                            var rowPitch = width * sizeof(float);
                             for (int i = 0; i < height; i++)
                             {
-                                Utilities.CopyMemory(dest, source, destStride);
-                                source = IntPtr.Add(source, dataBox.RowPitch);
-                                dest = IntPtr.Add(dest, destStride);
+                                Utilities.CopyMemory(valuesPtr, sourcePtr, rowPitch);
+                                sourcePtr = IntPtr.Add(sourcePtr, dataBox.RowPitch);
+                                valuesPtr = IntPtr.Add(valuesPtr, rowPitch);
                             }
                         }
                     }
 
-                    context.UnmapSubresource(resultsTexture, 0);
+                    context.UnmapSubresource(valuesTexture, 0);
                 }
             }, cancellationToken);
         }

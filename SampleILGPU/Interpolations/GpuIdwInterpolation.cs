@@ -5,7 +5,6 @@ using SpatialInterpolation.Kernels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,23 +19,23 @@ namespace SpatialInterpolation.Interpolations
         private Context context;
         private Device device;
         private Accelerator accelerator;
-        private MemoryBuffer2D<float, Stride2D.DenseX> resultsBuffer;
-        private MemoryBuffer1D<Vector3, Stride1D.Dense> samplesBuffer;
+        private MemoryBuffer2D<float, Stride2D.DenseX> valuesBuffer;
+        private MemoryBuffer1D<SpatialSample, Stride1D.Dense> samplesBuffer;
         private Action<Index2D, GpuIdwInterpolationKernel> kernel;
         private bool disposedValue;
 
-        public Task Interpolate(IEnumerable<SpatialSample> samples, float[,] target, CancellationToken cancellationToken)
+        public Task Interpolate(IEnumerable<SpatialSample> samples, float[,] values, CancellationToken cancellationToken)
         {
             if (samples == null) throw new ArgumentNullException(nameof(samples));
-            if (target == null) throw new ArgumentNullException(nameof(target));
-            var sampleArray = samples.Select(sample => new Vector3(sample.X, sample.Y, sample.Value)).ToArray();
+            if (values == null) throw new ArgumentNullException(nameof(values));
+            var sampleArray = samples.ToArray();
             if (sampleArray.Length == 0) throw new ArgumentOutOfRangeException(nameof(samples));
             return Task.Run(() =>
             {
                 lock (lockObject)
                 {
-                    int width = target.GetLength(1);
-                    int height = target.GetLength(0);
+                    int width = values.GetLength(1);
+                    int height = values.GetLength(0);
 
                     if (context?.IsDisposed != false)
                     {
@@ -51,23 +50,23 @@ namespace SpatialInterpolation.Interpolations
                         kernel = accelerator.LoadAutoGroupedStreamKernel<Index2D, GpuIdwInterpolationKernel>(GpuIdwInterpolationKernel.Execute);
                     }
 
-                    if (resultsBuffer == null || resultsBuffer.Extent.X != height || resultsBuffer.Extent.Y != width)
+                    if (valuesBuffer == null || valuesBuffer.IntExtent.X != height || valuesBuffer.IntExtent.Y != width)
                     {
-                        resultsBuffer?.Dispose();
-                        resultsBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(height, width));
+                        valuesBuffer?.Dispose();
+                        valuesBuffer = accelerator.Allocate2DDenseX<float>(new Index2D(height, width));
                     }
                     if (samplesBuffer == null || samplesBuffer.Length != sampleArray.Length)
                     {
                         samplesBuffer?.Dispose();
-                        samplesBuffer = accelerator.Allocate1D<Vector3>(sampleArray.Length);
+                        samplesBuffer = accelerator.Allocate1D<SpatialSample>(sampleArray.Length);
                     }
 
                     samplesBuffer.CopyFromCPU(sampleArray);
 
-                    var kernelData = new GpuIdwInterpolationKernel(resultsBuffer.View, samplesBuffer.View, SearchRadius, WeightPower);
+                    var kernelData = new GpuIdwInterpolationKernel(valuesBuffer.View, samplesBuffer.View, SearchRadius, WeightPower);
                     kernel(new Index2D(height, width), kernelData);
 
-                    resultsBuffer.CopyToCPU(target);
+                    valuesBuffer.CopyToCPU(values);
                 }
             }, cancellationToken);
         }
@@ -78,7 +77,7 @@ namespace SpatialInterpolation.Interpolations
             {
                 if (disposing)
                 {
-                    resultsBuffer?.Dispose();
+                    valuesBuffer?.Dispose();
                     samplesBuffer?.Dispose();
                     accelerator?.Dispose();
                     context?.Dispose();

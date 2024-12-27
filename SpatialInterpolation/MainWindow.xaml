@@ -117,7 +117,7 @@
                         <Slider x:Name="sliderMinimum" Value="0" Interval="1" Minimum="0" Maximum="100" IsSnapToTickEnabled="True"/>
                     </HeaderedContentControl>
                     <HeaderedContentControl Tag="Contour Levels: " Header="{Binding ElementName=sliderContourLevels, Path=Value}">
-                        <Slider x:Name="sliderContourLevels" Value="{Binding ElementName=heatMap, Path=ContourLevels}" Interval="1" Minimum="0" Maximum="40" IsSnapToTickEnabled="True"/>
+                        <Slider x:Name="sliderContourLevels" Value="{Binding ElementName=heatMap, Path=ContourLevels}" Interval="1" Minimum="1" Maximum="40" IsSnapToTickEnabled="True"/>
                     </HeaderedContentControl>
                     <CheckBox Content="Use GPU" IsChecked="{Binding UseGPU}" Margin="3,6"/>
                 </StackPanel>
@@ -220,6 +220,7 @@
                         Maximum="{Binding ElementName=sliderMaximum, Path=Value}"
                         DataSource="{Binding DataSource}"
                         GradientStops="{Binding ElementName=legend, Path=GradientStops}"
+                        UseGPU="{Binding UseGPU}"
                         Cursor="Hand">
                     </local:SpatialHeatMap>
                     <Rectangle Fill="#80000000" IsHitTestVisible="False" Visibility="{Binding IsBusy, Converter={vk:BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>

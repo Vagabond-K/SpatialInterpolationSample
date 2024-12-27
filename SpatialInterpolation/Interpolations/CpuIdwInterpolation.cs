@@ -11,16 +11,16 @@ namespace SpatialInterpolation.Interpolations
         public float SearchRadius { get; set; } = float.PositiveInfinity;
         public float WeightPower { get; set; } = 1;
 
-        public Task Interpolate(IEnumerable<SpatialSample> samples, float[,] target, CancellationToken cancellationToken)
+        public Task Interpolate(IEnumerable<SpatialSample> samples, float[,] values, CancellationToken cancellationToken)
         {
             if (samples == null) throw new ArgumentNullException(nameof(samples));
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            if (values == null) throw new ArgumentNullException(nameof(values));
             var sampleArray = samples.ToArray();
             if (sampleArray.Length == 0) throw new ArgumentOutOfRangeException(nameof(samples));
             return Task.Run(() =>
             {
-                int width = target.GetLength(1);
-                int height = target.GetLength(0);
+                int width = values.GetLength(1);
+                int height = values.GetLength(0);
 
                 var searchRadius = SearchRadius;
                 var weightPower = WeightPower;
@@ -42,7 +42,7 @@ namespace SpatialInterpolation.Interpolations
                                 weights += weight;
                             }
                         }
-                        target[y, x] = sum / weights;
+                        values[y, x] = sum / weights;
                     }
                 }
             }, cancellationToken);
