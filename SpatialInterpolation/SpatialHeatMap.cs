@@ -138,9 +138,11 @@ namespace SpatialInterpolation
                 for (int y = 0; y < height; y++)
                     for (int x = 0; x < width; x++)
                     {
-                        var contour = GetLineOpacity(posterized, x, y, levels);
-                        var color = ToColor(ToOffset(values[y, x], maximum, minimum), colors, offsets) * (1 - contour) + Colors.White * contour;
-                        *pixel++ = color.A << 24 | color.R << 16 | color.G << 8 | color.B;
+                        var color = ToColor(ToOffset(values[y, x], maximum, minimum), colors, offsets);
+                        var lineOpacity = GetLineOpacity(posterized, x, y, levels);
+                        var result = Colors.White * lineOpacity + color * (1 - lineOpacity);
+
+                        *pixel++ = result.A << 24 | result.R << 16 | result.G << 8 | result.B;
                     }
             }
             bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
