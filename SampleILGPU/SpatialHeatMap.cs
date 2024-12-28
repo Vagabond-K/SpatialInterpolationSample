@@ -44,18 +44,18 @@ namespace SpatialInterpolation
         {
             lock (lockObject)
             {
-                var dataSource = DataSource;
+                var values = DataSource;
                 var colors = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => new Vector4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
-                var colorStops = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => (float)stop.Offset)?.ToArray();
+                var offsets = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => (float)stop.Offset)?.ToArray();
 
-                if (dataSource == null || colors == null || colors.Length == 0)
+                if (values == null || colors == null || colors.Length == 0)
                 {
                     bitmap = null;
                     return;
                 }
 
-                var width = dataSource.GetLength(1);
-                var height = dataSource.GetLength(0);
+                var width = values.GetLength(1);
+                var height = values.GetLength(0);
 
                 if (bitmap == null || bitmap.PixelWidth != width || bitmap.PixelHeight != height)
                 {
@@ -86,15 +86,15 @@ namespace SpatialInterpolation
                     colorsBuffer?.Dispose();
                     colorsBuffer = accelerator.Allocate1D<Vector4>(colors.Length);
                 }
-                if (offsetsBuffer?.IsDisposed != false || offsetsBuffer.Length != colorStops.Length)
+                if (offsetsBuffer?.IsDisposed != false || offsetsBuffer.Length != offsets.Length)
                 {
                     offsetsBuffer?.Dispose();
                     offsetsBuffer = accelerator.Allocate1D<float>(colors.Length);
                 }
 
-                valuesBuffer.CopyFromCPU(dataSource);
+                valuesBuffer.CopyFromCPU(values);
                 colorsBuffer.CopyFromCPU(colors);
-                offsetsBuffer.CopyFromCPU(colorStops);
+                offsetsBuffer.CopyFromCPU(offsets);
 
                 var kernelData = new SpatialHeatMapKernel(
                     heatMapBuffer.View,
