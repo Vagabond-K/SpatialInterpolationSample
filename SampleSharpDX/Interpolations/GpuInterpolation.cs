@@ -99,10 +99,12 @@ namespace SpatialInterpolation.Interpolations
                         device = new Device(DriverType.Hardware, DeviceCreationFlags.None);
                     }
 
+                    var context = device.ImmediateContext;
+
                     if (shader?.IsDisposed != false)
                     {
                         shader = new ComputeShader(device, shaderByteCode);
-                        device.ImmediateContext.ComputeShader.Set(shader);
+                        context.ComputeShader.Set(shader);
                     }
 
                     int width = values.GetLength(1);
@@ -123,8 +125,9 @@ namespace SpatialInterpolation.Interpolations
                     }
 
                     if (samplesView?.Resource?.IsDisposed != false || samplesView?.IsDisposed != false)
+                    {
                         samplesView = new ShaderResourceView(device, new Buffer(device,
-                            new BufferDescription(sampleArray.Length * sampleSize, 
+                            new BufferDescription(sampleArray.Length * sampleSize,
                             ResourceUsage.Default, BindFlags.ShaderResource, CpuAccessFlags.None, ResourceOptionFlags.BufferStructured, sampleSize)),
                             new ShaderResourceViewDescription
                             {
@@ -135,17 +138,17 @@ namespace SpatialInterpolation.Interpolations
                                     ElementWidth = sampleArray.Length,
                                 }
                             });
+                        context.ComputeShader.SetShaderResource(0, samplesView);
+                    }
                     if (valuesView?.Resource?.IsDisposed != false || valuesView?.IsDisposed != false)
+                    {
                         valuesView = new UnorderedAccessView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.UnorderedAccess));
+                        context.ComputeShader.SetUnorderedAccessView(0, valuesView);
+                    }
                     if (valuesTexture?.IsDisposed != false)
                         valuesTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
 
-                    var context = device.ImmediateContext;
-
-                    context.ComputeShader.Set(shader);
                     context.UpdateSubresource(sampleArray, samplesView.Resource);
-                    context.ComputeShader.SetShaderResource(0, samplesView);
-                    context.ComputeShader.SetUnorderedAccessView(0, valuesView);
 
                     Configure(device, samples, values);
 

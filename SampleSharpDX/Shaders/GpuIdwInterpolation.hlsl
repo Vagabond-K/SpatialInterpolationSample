@@ -7,23 +7,22 @@ cbuffer params : register(b0)
 }
 
 [numthreads(32, 32, 1)]
-void CS(uint3 id : SV_DispatchThreadID)
+void CS(uint2 id : SV_DispatchThreadID)
 {
-    uint sampleCount;
-    uint sampleSize;
-    samples.GetDimensions(sampleCount, sampleSize);
+    uint sampleCount, _;
+    samples.GetDimensions(sampleCount, _);
 
     float sum = 0;
     float weights = 0;
     for (uint i = 0; i < sampleCount; i++)
     {
-        float dist = distance(id.xy, samples[i].xy);
+        float dist = distance(id, samples[i].xy);
         if (dist <= searchRadius)
         {
-            float weight = dist == 0 ? 0.1 : 1.0 / pow(dist, weightPower);
+            float weight = dist == 0 ? 1 : 1 / pow(dist, weightPower);
             sum += weight * samples[i].z;
             weights += weight;
         }
     }
-    values[id.xy] = sum / weights;
+    values[id] = sum / weights;
 }

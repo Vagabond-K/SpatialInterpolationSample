@@ -65,7 +65,7 @@ namespace SpatialInterpolation
 
         private static Color ToColor(in float offset, Color[] colors, float[] offsets)
         {
-            int ranges = colors.Length - 1;
+            var ranges = colors.Length - 1;
 
             int index;
             for (index = 0; index < ranges; index++)
@@ -74,8 +74,8 @@ namespace SpatialInterpolation
 
             if (index == 0 || offsets[index] <= offset) return colors[index];
 
-            float range = offsets[index] - offsets[index - 1];
-            float alpha = (offset - offsets[index - 1]) / range;
+            var range = offsets[index] - offsets[index - 1];
+            var alpha = (offset - offsets[index - 1]) / range;
             var colorA = colors[index];
             var colorB = colors[index - 1];
 
@@ -86,10 +86,10 @@ namespace SpatialInterpolation
 
         private static float GetLineOpacity(float[,] poster, in int currX, in int currY, in int levels)
         {
-            int prevX = currX + (currX <= 0 ? 0 : -1);
-            int prevY = currY + (currY <= 0 ? 0 : -1);
-            int nextX = currX + (currX >= poster.GetLength(1) - 1 ? 0 : 1);
-            int nextY = currY + (currY >= poster.GetLength(0) - 1 ? 0 : 1);
+            var prevX = currX + (currX <= 0 ? 0 : -1);
+            var prevY = currY + (currY <= 0 ? 0 : -1);
+            var nextX = currX + (currX >= poster.GetLength(1) - 1 ? 0 : 1);
+            var nextY = currY + (currY >= poster.GetLength(0) - 1 ? 0 : 1);
 
             var gX = poster[prevY, prevX] - poster[prevY, nextX]
                 + (poster[currY, prevX] - poster[currY, nextX]) * 2
