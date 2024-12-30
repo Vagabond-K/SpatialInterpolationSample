@@ -4,7 +4,7 @@ namespace SpatialInterpolation.Shaders
 {
     [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
     [GeneratedComputeShaderDescriptor]
-    public readonly partial struct SpatialHeatMapShader(
+    readonly partial struct SpatialHeatMapShader(
         ReadWriteTexture2D<int> heatMap,
         ReadOnlyTexture1D<float4> colors,
         ReadOnlyTexture1D<float> offsets,

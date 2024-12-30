@@ -4,9 +4,9 @@ namespace SpatialInterpolation.Shaders
 {
     [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
     [GeneratedComputeShaderDescriptor]
-    public readonly partial struct GpuIdwInterpolationShader(
-        ReadWriteTexture2D<float> values,
+    readonly partial struct GpuIdwInterpolationShader(
         ReadOnlyBuffer<float3> samples,
+        ReadWriteTexture2D<float> values,
         float searchRadius,
         float weightPower) : IComputeShader
     {

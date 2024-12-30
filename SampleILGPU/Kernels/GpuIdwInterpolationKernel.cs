@@ -5,12 +5,12 @@ using System.Numerics;
 namespace SpatialInterpolation.Kernels
 {
     struct GpuIdwInterpolationKernel(
-        ArrayView2D<float, Stride2D.DenseX> values,
         ArrayView1D<SpatialSample, Stride1D.Dense> samples,
+        ArrayView2D<float, Stride2D.DenseX> values,
         float searchRadius,
         float weightPower)
     {
-        private void ExecuteKernel(Index2D id)
+        public void Execute(Index2D id)
         {
             var sum = 0f;
             var weights = 0f;
@@ -26,7 +26,5 @@ namespace SpatialInterpolation.Kernels
             }
             values[id] = sum / weights;
         }
-
-        public static void Execute(Index2D id, GpuIdwInterpolationKernel data) => data.ExecuteKernel(id);
     }
 }

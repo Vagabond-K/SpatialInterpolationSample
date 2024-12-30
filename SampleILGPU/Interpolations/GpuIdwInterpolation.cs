@@ -1,6 +1,5 @@
 ﻿using ILGPU;
 using ILGPU.Runtime;
-using ILGPU.Runtime.CPU;
 using SpatialInterpolation.Kernels;
 using System;
 using System.Collections.Generic;
@@ -41,13 +40,13 @@ namespace SpatialInterpolation.Interpolations
                     {
                         accelerator?.Dispose();
                         context = Context.Create(b => b.AllAccelerators().EnableAlgorithms());
-                        device = context.Devices.FirstOrDefault(device => device is not CPUDevice) ?? context.Devices.FirstOrDefault();
+                        device = context.Devices.FirstOrDefault(device => device.AcceleratorType != AcceleratorType.CPU) ?? context.Devices.FirstOrDefault();
                     }
 
                     if (accelerator?.IsDisposed != false)
                     {
                         accelerator = device.CreateAccelerator(context);
-                        kernel = accelerator.LoadAutoGroupedStreamKernel<Index2D, GpuIdwInterpolationKernel>(GpuIdwInterpolationKernel.Execute);
+                        kernel = accelerator.LoadAutoGroupedStreamKernel<Index2D, GpuIdwInterpolationKernel>((id, kernel) => kernel.Execute(id));
                     }
 
                     if (valuesBuffer == null || valuesBuffer.IntExtent.X != height || valuesBuffer.IntExtent.Y != width)
@@ -63,7 +62,7 @@ namespace SpatialInterpolation.Interpolations
 
                     samplesBuffer.CopyFromCPU(sampleArray);
 
-                    var kernelData = new GpuIdwInterpolationKernel(valuesBuffer.View, samplesBuffer.View, SearchRadius, WeightPower);
+                    var kernelData = new GpuIdwInterpolationKernel(samplesBuffer.View, valuesBuffer.View, SearchRadius, WeightPower);
                     kernel(new Index2D(height, width), kernelData);
 
                     valuesBuffer.CopyToCPU(values);

@@ -76,7 +76,7 @@ namespace SpatialInterpolation.Kernels
             return float.Sqrt(gX * gX + gY * gY);
         }
 
-        private void ExecuteKernel(Index2D id)
+        public void Execute(Index2D id)
         {
             var color = ToColor(ToOffset(id));
             float lineOpacity = GetLineOpacity(id.X, id.Y) * contourColor.W;
@@ -88,7 +88,5 @@ namespace SpatialInterpolation.Kernels
                 | ((int)(result.Y * 255f) << 8)
                 | ((int)(result.Z * 255f));
         }
-
-        public static void Execute(Index2D id, SpatialHeatMapKernel data) => data.ExecuteKernel(id);
     }
 }

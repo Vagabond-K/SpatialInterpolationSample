@@ -44,7 +44,7 @@ namespace SpatialInterpolation.Interpolations
                     }
 
                     samplesBuffer.CopyFrom(sampleArray);
-                    device.For(width, height, new GpuIdwInterpolationShader(valuesBuffer, samplesBuffer, SearchRadius, WeightPower));
+                    device.For(width, height, new GpuIdwInterpolationShader(samplesBuffer, valuesBuffer, SearchRadius, WeightPower));
                     valuesBuffer.CopyTo(values);
                 }
             }, cancellationToken);

@@ -1,6 +1,5 @@
 ﻿using ILGPU;
 using ILGPU.Runtime;
-using ILGPU.Runtime.CPU;
 using SpatialInterpolation.Kernels;
 using System;
 using System.Linq;
@@ -68,13 +67,13 @@ namespace SpatialInterpolation
                 {
                     accelerator?.Dispose();
                     context = Context.Create(b => b.AllAccelerators().EnableAlgorithms());
-                    device = context.Devices.FirstOrDefault(device => device is not CPUDevice) ?? context.Devices.FirstOrDefault();
+                    device = context.Devices.FirstOrDefault(device => device.AcceleratorType != AcceleratorType.CPU) ?? context.Devices.FirstOrDefault();
                 }
 
                 if (accelerator?.IsDisposed != false)
                 {
                     accelerator = device.CreateAccelerator(context);
-                    kernel = accelerator.LoadAutoGroupedStreamKernel<Index2D, SpatialHeatMapKernel>(SpatialHeatMapKernel.Execute);
+                    kernel = accelerator.LoadAutoGroupedStreamKernel<Index2D, SpatialHeatMapKernel>((id, kernel) => kernel.Execute(id));
                 }
 
                 if (heatMapBuffer?.IsDisposed != false)
