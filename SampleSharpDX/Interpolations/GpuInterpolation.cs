@@ -27,7 +27,7 @@ namespace SpatialInterpolation.Interpolations
         private ComputeShader shader;
         private ShaderResourceView samplesView;
         private UnorderedAccessView valuesView;
-        private Texture2D valuesTexture;
+        private Texture2D stagingTexture;
 
         private int lastSampleCount;
         private int lastWidth;
@@ -54,7 +54,7 @@ namespace SpatialInterpolation.Interpolations
                 Utilities.Dispose(ref valuesView);
                 Utilities.Dispose(ref resource);
 
-                Utilities.Dispose(ref valuesTexture);
+                Utilities.Dispose(ref stagingTexture);
             }
         }
 
@@ -145,17 +145,17 @@ namespace SpatialInterpolation.Interpolations
                         valuesView = new UnorderedAccessView(device, device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.UnorderedAccess));
                         context.ComputeShader.SetUnorderedAccessView(0, valuesView);
                     }
-                    if (valuesTexture?.IsDisposed != false)
-                        valuesTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
+                    if (stagingTexture?.IsDisposed != false)
+                        stagingTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_Float, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
 
                     context.UpdateSubresource(sampleArray, samplesView.Resource);
 
                     Configure(device, samples, values);
 
                     context.Dispatch(Math.Max(1, (width + 31) / 32), Math.Max(1, (height + 31) / 32), 1);
-                    context.CopyResource(valuesView.Resource, valuesTexture);
+                    context.CopyResource(valuesView.Resource, stagingTexture);
 
-                    var dataBox = context.MapSubresource(valuesTexture, 0, MapMode.Read, MapFlags.None);
+                    var dataBox = context.MapSubresource(stagingTexture, 0, MapMode.Read, MapFlags.None);
                     var sourcePtr = dataBox.DataPointer;
 
                     unsafe
@@ -177,7 +177,7 @@ namespace SpatialInterpolation.Interpolations
                         }
                     }
 
-                    context.UnmapSubresource(valuesTexture, 0);
+                    context.UnmapSubresource(stagingTexture, 0);
                 }
             }, cancellationToken);
         }

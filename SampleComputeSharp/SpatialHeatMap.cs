@@ -34,8 +34,8 @@ namespace SpatialInterpolation
             lock (lockObject)
             {
                 var values = DataSource;
-                var colors = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => new float4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
-                var offsets = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => (float)stop.Offset)?.ToArray();
+                var colors = GradientStops?.OrderBy(item => item.Offset)?.Select(item => new float4(item.Color.ScR, item.Color.ScG, item.Color.ScB, item.Color.ScA))?.ToArray();
+                var offsets = GradientStops?.OrderBy(item => item.Offset)?.Select(item => (float)item.Offset)?.ToArray();
 
                 if (values == null || colors == null || colors.Length == 0)
                 {
@@ -83,15 +83,13 @@ namespace SpatialInterpolation
                     Maximum,
                     Minimum));
 
+                bitmap.Lock();
                 unsafe
                 {
-                    bitmap.Lock();
-                    Bgra32* pointer = (Bgra32*)bitmap.BackBuffer;
-                    Span<int> results = new(pointer, width * height);
-                    heatMapBuffer.CopyTo(results);
-                    bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
-                    bitmap.Unlock();
+                    heatMapBuffer.CopyTo(new Span<int>((void*)bitmap.BackBuffer, width * height));
                 }
+                bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
+                bitmap.Unlock();
             }
         }
     }

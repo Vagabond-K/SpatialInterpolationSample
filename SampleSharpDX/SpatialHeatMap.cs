@@ -64,7 +64,7 @@ namespace SpatialInterpolation
         private ShaderResourceView offsetsView;
         private ShaderResourceView valuesView;
         private UnorderedAccessView heatMapView;
-        private Texture2D heatMapTexture;
+        private Texture2D stagingTexture;
 
         private void DisposeColorsResources()
         {
@@ -92,7 +92,7 @@ namespace SpatialInterpolation
                 Utilities.Dispose(ref heatMapView);
                 Utilities.Dispose(ref resource);
 
-                Utilities.Dispose(ref heatMapTexture);
+                Utilities.Dispose(ref stagingTexture);
             }
         }
 
@@ -111,8 +111,8 @@ namespace SpatialInterpolation
             lock (lockObject)
             {
                 var values = DataSource;
-                var colors = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => new Color4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
-                var offsets = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => (float)stop.Offset)?.ToArray();
+                var colors = GradientStops?.OrderBy(item => item.Offset)?.Select(item => new Color4(item.Color.ScR, item.Color.ScG, item.Color.ScB, item.Color.ScA))?.ToArray();
+                var offsets = GradientStops?.OrderBy(item => item.Offset)?.Select(item => (float)item.Offset)?.ToArray();
 
                 if (values == null || colors == null || colors.Length == 0)
                 {
@@ -178,8 +178,8 @@ namespace SpatialInterpolation
                     parametersBuffer = new Buffer(device, new BufferDescription((int)Math.Ceiling(Marshal.SizeOf<HeatMapParameters>() / 16d) * 16, BindFlags.ConstantBuffer, ResourceUsage.Default));
                     context.ComputeShader.SetConstantBuffer(0, parametersBuffer);
                 }
-                if (heatMapTexture?.IsDisposed != false)
-                    heatMapTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_SInt, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
+                if (stagingTexture?.IsDisposed != false)
+                    stagingTexture = device.CreateTexture2D(width, height, SharpDX.DXGI.Format.R32_SInt, BindFlags.None, ResourceUsage.Staging, CpuAccessFlags.Read);
 
                 unsafe
                 {
@@ -194,9 +194,9 @@ namespace SpatialInterpolation
                 context.UpdateSubresource(ref parameters, parametersBuffer);
 
                 context.Dispatch(Math.Max(1, (width + 31) / 32), Math.Max(1, (height + 31) / 32), 1);
-                context.CopyResource(heatMapView.Resource, heatMapTexture);
+                context.CopyResource(heatMapView.Resource, stagingTexture);
 
-                var dataBox = context.MapSubresource(heatMapTexture, 0, MapMode.Read, MapFlags.None);
+                var dataBox = context.MapSubresource(stagingTexture, 0, MapMode.Read, MapFlags.None);
 
                 var sourcePtr = dataBox.DataPointer;
                 var bitmapPtr = bitmap.BackBuffer;
@@ -208,7 +208,7 @@ namespace SpatialInterpolation
                     sourcePtr = IntPtr.Add(sourcePtr, dataBox.RowPitch);
                     bitmapPtr = IntPtr.Add(bitmapPtr, rowPitch);
                 }
-                context.UnmapSubresource(heatMapTexture, 0);
+                context.UnmapSubresource(stagingTexture, 0);
                 bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
                 bitmap.Unlock();
             }

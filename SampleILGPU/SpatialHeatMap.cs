@@ -44,8 +44,8 @@ namespace SpatialInterpolation
             lock (lockObject)
             {
                 var values = DataSource;
-                var colors = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => new Vector4(stop.Color.ScR, stop.Color.ScG, stop.Color.ScB, stop.Color.ScA))?.ToArray();
-                var offsets = GradientStops?.OrderBy(stop => stop.Offset)?.Select(stop => (float)stop.Offset)?.ToArray();
+                var colors = GradientStops?.OrderBy(item => item.Offset)?.Select(item => new Vector4(item.Color.ScR, item.Color.ScG, item.Color.ScB, item.Color.ScA))?.ToArray();
+                var offsets = GradientStops?.OrderBy(item => item.Offset)?.Select(item => (float)item.Offset)?.ToArray();
 
                 if (values == null || colors == null || colors.Length == 0)
                 {
@@ -106,8 +106,7 @@ namespace SpatialInterpolation
                     Minimum);
                 kernel(new Index2D(height, width), kernelData);
 
-                var results = heatMapBuffer.GetAsArray2D();
-                bitmap.WritePixels(new Int32Rect(0, 0, width, height), results, width * bitmap.Format.BitsPerPixel / 8, 0);
+                bitmap.WritePixels(new Int32Rect(0, 0, width, height), heatMapBuffer.GetAsArray2D(), width * bitmap.Format.BitsPerPixel / 8, 0);
             }
         }
     }
